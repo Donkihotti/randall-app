@@ -1,0 +1,33 @@
+{
+  "prompt": "{\"subject\":{\"type\":\"person\"},\"instructions\":{\"prompt_text\":\"A photorealistic portrait of a woman smiling, golden hour lighting\"}\n  Camera: Camera: Default, 50mm, aspect 1:1.\n  Style: studio look. Style references: ..\n  Render photorealistic, high detail.",
+  "json": {
+    "model": "gpt-image-1",
+    "resolution": {
+      "w": 1024,
+      "h": 1024
+    },
+    "camera": {
+      "preset": "Default",
+      "focal_length_mm": 50,
+      "aspect_ratio": "1:1"
+    },
+    "subject": {
+      "type": "person"
+    },
+    "style": {
+      "feel": "studio",
+      "style_ref_urls": []
+    },
+    "instructions": {
+      "prompt_text": "{\"subject\":{\"type\":\"person\"},\"instructions\":{\"prompt_text\":\"A photorealistic portrait of a woman smiling, golden hour lighting\"}",
+      "variations": 1
+    }
+  },
+  "createdAt": "2025-08-18T08:18:06.199Z",
+  "images": [
+    {
+      "url": "/generated/gen-1755505086198-0.png",
+      "path": "/Users/danielfiander/Desktop/Randall App/randall-app/public/generated/gen-1755505086198-0.png"
+    }
+  ]
+}

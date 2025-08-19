@@ -1,0 +1,42 @@
+{
+  "prompt": "Caucasian female that stands in front of a concrete wall. y2k feel camera slightly tilted\n  Camera: Camera: Studio Portrait, 85mm, aspect 4:5.\n  Style: iphone look. Style references: ..\n  Render photorealistic, high detail.",
+  "json": {
+    "model": "gpt-image-1",
+    "resolution": {
+      "w": 1024,
+      "h": 1024
+    },
+    "seed": null,
+    "quality_tier": "standard",
+    "camera": {
+      "preset": "Studio Portrait",
+      "focal_length_mm": 85,
+      "aspect_ratio": "4:5"
+    },
+    "subject": {
+      "type": "person",
+      "shot": "full-body"
+    },
+    "style": {
+      "feel": "iphone",
+      "style_ref_urls": [],
+      "negative_prompts": []
+    },
+    "instructions": {
+      "prompt_text": "Caucasian female that stands in front of a concrete wall. y2k feel camera slightly tilted",
+      "variations": 1
+    },
+    "postprocess": {
+      "upscale": "none",
+      "color_grade": "auto",
+      "format": "png"
+    }
+  },
+  "createdAt": "2025-08-18T08:59:49.081Z",
+  "images": [
+    {
+      "url": "/generated/gen-1755507589080-0.png",
+      "path": "/Users/danielfiander/Desktop/Randall App/randall-app/public/generated/gen-1755507589080-0.png"
+    }
+  ]
+}

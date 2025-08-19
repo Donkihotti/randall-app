@@ -1,0 +1,42 @@
+{
+  "prompt": "Studio portrait of a person . studio look. Style references: . Camera: Full Body, 50mm, aspect 3:4 Render photorealistic, high-detail skin and fabric textures.",
+  "json": {
+    "model": "gpt-image-1",
+    "resolution": {
+      "w": 1024,
+      "h": 1024
+    },
+    "seed": null,
+    "quality_tier": "standard",
+    "camera": {
+      "preset": "Full Body",
+      "focal_length_mm": 50,
+      "aspect_ratio": "3:4"
+    },
+    "subject": {
+      "type": "person",
+      "shot": "full-body"
+    },
+    "style": {
+      "feel": "studio",
+      "style_ref_urls": [],
+      "negative_prompts": []
+    },
+    "instructions": {
+      "prompt_text": null,
+      "variations": 1
+    },
+    "postprocess": {
+      "upscale": "none",
+      "color_grade": "auto",
+      "format": "png"
+    }
+  },
+  "createdAt": "2025-08-18T09:29:59.893Z",
+  "images": [
+    {
+      "url": "/generated/gen-1755509399892-0.png",
+      "path": "/Users/danielfiander/Desktop/Randall App/randall-app/public/generated/gen-1755509399892-0.png"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "prompt": "Caucasian male in bronx fashion photoshoot shaky effect\n  Camera: Camera: Full Body, 50mm, aspect 3:4.\n  Style: iphone look. Style references: ..\n  Render photorealistic, high detail.",
+  "json": {
+    "model": "gpt-image-1",
+    "resolution": {
+      "w": 1024,
+      "h": 1024
+    },
+    "seed": null,
+    "quality_tier": "standard",
+    "camera": {
+      "preset": "Full Body",
+      "focal_length_mm": 50,
+      "aspect_ratio": "3:4"
+    },
+    "subject": {
+      "type": "person",
+      "shot": "full-body"
+    },
+    "style": {
+      "feel": "iphone",
+      "style_ref_urls": [],
+      "negative_prompts": []
+    },
+    "instructions": {
+      "prompt_text": "Caucasian male in bronx fashion photoshoot shaky effect",
+      "variations": 1
+    },
+    "postprocess": {
+      "upscale": "none",
+      "color_grade": "auto",
+      "format": "png"
+    }
+  },
+  "createdAt": "2025-08-18T10:24:07.672Z",
+  "images": [
+    {
+      "url": "/generated/gen-1755512647668-0.png",
+      "path": "/Users/danielfiander/Desktop/Randall App/randall-app/public/generated/gen-1755512647668-0.png"
+    }
+  ]
+}
