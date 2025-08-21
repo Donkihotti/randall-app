@@ -8,7 +8,7 @@ export default function AddMenu() {
 
   return (
     <div style={{ padding: 8 }}>
-      <h4>Add component</h4>
+      <h4 className="text-white">Add component</h4>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <ButtonDefault onClick={() => addComponent("camera", { preset: "Studio Portrait", focal: 85, aspect: "4:5" })}>Camera</ButtonDefault>
         <ButtonDefault onClick={() => addComponent("subject", { subjectType: "person", pose: "neutral" })}>Subject</ButtonDefault>

@@ -2,27 +2,48 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { assemblePrompt } from "@/app/lib/promptAssembler";
+import { graphToPrompt } from "../../../../lib/graphToPrompt";
+import { assemblePrompt } from "@/app/lib/promptAssembler"; 
 
 const GENERATED_DIR = path.join(process.cwd(), "public", "generated");
 if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
 export async function POST(request) {
   try {
-    const json = await request.json();
-    if (!json || !json.subject) {
-      return NextResponse.json({ error: "Missing subject in JSON" }, { status: 400 });
+    const body = await request.json();
+    console.log("🔔 /api/generate payload:", Object.keys(body || {}).join(", "));
+
+    // Flexible input handling:
+    // priority: body.prompt -> body.graph -> body.subject (structured) -> error
+    let prompt = body?.prompt ?? null;
+    if (!prompt && body?.graph) {
+      try {
+        prompt = graphToPrompt(body.graph);
+      } catch (e) {
+        console.error("graphToPrompt error:", e);
+        return NextResponse.json({ error: "Failed to assemble prompt from graph" }, { status: 400 });
+      }
+    }
+    if (!prompt && body?.subject) {
+      try {
+        prompt = assemblePrompt(body);
+      } catch (e) {
+        console.error("assemblePrompt error:", e);
+        return NextResponse.json({ error: "Failed to assemble prompt from structured JSON" }, { status: 400 });
+      }
     }
 
-    const prompt = assemblePrompt(json);
+    if (!prompt) {
+      return NextResponse.json({ error: "Missing prompt, graph, or subject in request body" }, { status: 400 });
+    }
 
     const OPENAI_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_KEY) {
-      console.error("OPENAI_API_KEY missing");
+      console.error("OPENAI_API_KEY not set");
       return NextResponse.json({ error: "Server misconfiguration: OPENAI_API_KEY not set" }, { status: 500 });
     }
 
-    // Moderation (optional) - keep it, but handle errors gracefully
+    // moderation (best-effort)
     try {
       const modResp = await fetch("https://api.openai.com/v1/moderations", {
         method: "POST",
@@ -32,26 +53,27 @@ export async function POST(request) {
         },
         body: JSON.stringify({ input: [prompt] }),
       });
-
       const modText = await modResp.text();
       let modJson = null;
-      try { modJson = JSON.parse(modText); } catch (e) {
-        console.warn("Moderation non-JSON response:", modResp.status, modText.slice(0, 500));
-      }
+      try { modJson = JSON.parse(modText); } catch (e) { /* ignore non-json */ }
       if (modJson?.results?.[0]?.flagged) {
         return NextResponse.json({ error: "Prompt flagged by moderation." }, { status: 400 });
       }
     } catch (mErr) {
-      console.warn("Moderation call failed:", mErr.message);
-      // proceed — moderation is useful but should not always block dev flow
+      console.warn("Moderation failed (continuing):", mErr?.message || mErr);
     }
 
-    // Call OpenAI Images endpoint
-    const size =
-      json.resolution && json.resolution.w && json.resolution.h
-        ? `${json.resolution.w}x${json.resolution.h}`
-        : "1024x1024";
+    // preview override
+    const isPreview = body?.preview === true;
+    const previewSize = "256x256";
+    const requestedSize = body?.size ?? (body?.resolution ? `${body.resolution.w}x${body.resolution.h}` : "1024x1024");
+    const size = isPreview ? previewSize : requestedSize;
 
+    // model & count
+    const model = body?.model ?? "gpt-image-1";
+    const n = Number(body?.n ?? (body?.instructions?.variations ?? 1));
+
+    // call OpenAI Images generation endpoint
     const openaiResp = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
@@ -59,29 +81,28 @@ export async function POST(request) {
         Authorization: `Bearer ${OPENAI_KEY}`,
       },
       body: JSON.stringify({
-        model: json.model || "gpt-image-1",
+        model,
         prompt,
         size,
-        n: json.instructions?.variations || 1,
+        n,
       }),
     });
 
-    // If response not ok, capture text for diagnostics
     const respText = await openaiResp.text();
     let openaiData = null;
     try {
       openaiData = JSON.parse(respText);
     } catch (err) {
-      console.error("OpenAI returned non-JSON. Status:", openaiResp.status, "Body (first 1000 chars):", respText.slice(0,1000));
+      console.error("OpenAI returned non-JSON:", openaiResp.status, respText.slice(0, 1000));
       return NextResponse.json({
-        error: "OpenAI returned non-JSON response. See server logs for details.",
+        error: "OpenAI returned non-JSON response. Check server logs.",
         status: openaiResp.status,
-        bodySnippet: respText.slice(0,1000)
+        bodySnippet: respText.slice(0, 1000),
       }, { status: 500 });
     }
 
-    if (!openaiData?.data) {
-      console.error("OpenAI JSON missing data:", openaiData);
+    if (!openaiData?.data || !Array.isArray(openaiData.data)) {
+      console.error("OpenAI response missing data:", openaiData);
       return NextResponse.json({ error: "Image generation failed", details: openaiData }, { status: 500 });
     }
 
@@ -106,14 +127,18 @@ export async function POST(request) {
       images.push({ url: `/generated/${fname}`, path: outPath });
     }
 
-    // Save metadata (optional)
-    fs.writeFileSync(path.join(GENERATED_DIR, `meta-${Date.now()}.json`), JSON.stringify({
-      prompt, json, createdAt: new Date().toISOString(), images
-    }, null, 2));
+    // Save metadata for reproducibility
+    try {
+      fs.writeFileSync(path.join(GENERATED_DIR, `meta-${Date.now()}.json`), JSON.stringify({
+        prompt, body, createdAt: new Date().toISOString(), images
+      }, null, 2));
+    } catch (e) {
+      console.warn("Failed writing metadata:", e?.message || e);
+    }
 
-    return NextResponse.json({ images, prompt }, { status: 200 });
+    return NextResponse.json({ images, prompt, preview: isPreview }, { status: 200 });
   } catch (err) {
-    console.error("API error:", err);
+    console.error("API /api/generate error:", err);
     return NextResponse.json({ error: err.message || "server error" }, { status: 500 });
   }
 }

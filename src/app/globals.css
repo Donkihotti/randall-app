@@ -10,14 +10,36 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-inter: var(--font-inter);
+
   --color-button: var(--offgray);
+  --color-menu: var(--menu);
+  --color-canvas: var(--canvas);
+  --color-normal: var(--normal);
+  --color-normal-dark: var(--dark-gray); 
+  --color-light: var(--light-gray);
+  --color-side-menu: var(--menu-gray);
+  --color-default-orange: var(--default-orange);
+
+  --text-small: var(--sidemenu-text);
+  --text-header-2: var(--header-2);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #ffffff;
     --foreground: #ededed;
-    --offgray: #FBFBFA; 
+    --offgray: #242424; 
+    --menu: #000001;
+    --canvas: #100F10;
+    --normal: #383838;
+    --dark-gray: #242424;
+    --light-gray: #484848; 
+    --menu-gray: #2F2F2F; 
+    --default-orange: #FD5E32;
+
+    --sidemenu-text: 14px; 
+    --header-2: 40px;
   }
 }
 

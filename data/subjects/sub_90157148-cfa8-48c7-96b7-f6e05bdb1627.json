@@ -1,0 +1,41 @@
+{
+  "id": "sub_90157148-cfa8-48c7-96b7-f6e05bdb1627",
+  "name": "Test Model ",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-20T12:22:07.299Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "1755692478308-_ (12).jpeg",
+      "url": "/uploads/1755692478308-_ (12).jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "1755692490057-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg",
+      "url": "/uploads/1755692490057-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [
+    "Face ref file not found: /uploads/1755692478308-_ (12).jpeg",
+    "Body ref file not found: /uploads/1755692490057-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg",
+    "Body reference file missing for generation: /uploads/1755692490057-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_c0587542-627b-484b-be17-1b09ae7c9f48",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-20T12:22:07.299Z"
+    },
+    {
+      "jobId": "job_c2c67ea2-900e-4eee-99e6-124d6466a71b",
+      "type": "generate-views",
+      "enqueuedAt": "2025-08-20T12:24:01.713Z"
+    }
+  ]
+}

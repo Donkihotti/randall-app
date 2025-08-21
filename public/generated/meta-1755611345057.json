@@ -1,0 +1,16 @@
+{
+  "prompt": "Camera: studio portrait. Subject: person, Dynamic. Clothing: , slot: torso. Render photorealistic, high detail. Emphasize fabric texture and realistic lighting. Avoid text in the scene. No visible watermark.",
+  "body": {
+    "prompt": "Camera: studio portrait. Subject: person, Dynamic. Clothing: , slot: torso. Render photorealistic, high detail. Emphasize fabric texture and realistic lighting. Avoid text in the scene. No visible watermark.",
+    "preview": false,
+    "size": "1024x1024",
+    "n": 1
+  },
+  "createdAt": "2025-08-19T13:49:05.057Z",
+  "images": [
+    {
+      "url": "/generated/gen-1755611345055-0.png",
+      "path": "/Users/danielfiander/Desktop/Randall App/randall-app/public/generated/gen-1755611345055-0.png"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ export default function Inspector() {
   }
 
   return (
-    <div style={{ padding: 12, borderLeft: "1px solid #eee", minWidth: 300 }}>
+    <div style={{ padding: 12, borderLeft: "1px solid #eee", minWidth: 300 }} className="bg-neutral-300">
       <h3>{comp.type} — {comp.id.slice(0,6)}</h3>
 
       {/* Render simple forms depending on type */}

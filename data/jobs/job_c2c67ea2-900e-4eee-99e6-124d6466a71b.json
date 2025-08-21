@@ -1,0 +1,16 @@
+{
+  "id": "job_c2c67ea2-900e-4eee-99e6-124d6466a71b",
+  "type": "generate-views",
+  "subjectId": "sub_90157148-cfa8-48c7-96b7-f6e05bdb1627",
+  "createdAt": "2025-08-20T12:24:01.713Z",
+  "status": "done",
+  "payload": {
+    "views": [
+      "front",
+      "left",
+      "right"
+    ],
+    "previewOnly": true
+  },
+  "finishedAt": "2025-08-20T14:35:04.961Z"
+}

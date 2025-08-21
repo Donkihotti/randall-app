@@ -1,0 +1,16 @@
+{
+  "prompt": "Camera: Studio Fullbody , 85mm, aspect 4:5. Subject: person, Dynamic fashion. Clothing: Green dress, slot: torso. Render photorealistic, high detail. Emphasize fabric texture and realistic lighting. Avoid text in the scene. No visible watermark.",
+  "body": {
+    "prompt": "Camera: Studio Fullbody , 85mm, aspect 4:5. Subject: person, Dynamic fashion. Clothing: Green dress, slot: torso. Render photorealistic, high detail. Emphasize fabric texture and realistic lighting. Avoid text in the scene. No visible watermark.",
+    "model": "gpt-image-1",
+    "size": "1024x1024",
+    "n": 1
+  },
+  "createdAt": "2025-08-19T12:13:34.202Z",
+  "images": [
+    {
+      "url": "/generated/gen-1755605614200-0.png",
+      "path": "/Users/danielfiander/Desktop/Randall App/randall-app/public/generated/gen-1755605614200-0.png"
+    }
+  ]
+}
