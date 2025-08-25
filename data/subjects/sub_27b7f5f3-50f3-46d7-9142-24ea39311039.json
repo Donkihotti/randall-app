@@ -1,0 +1,35 @@
+{
+  "id": "sub_27b7f5f3-50f3-46d7-9142-24ea39311039",
+  "name": "New test",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "Light skin tone",
+  "createdAt": "2025-08-21T16:01:31.997Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "test-2-bf7fd4bf-1bd1-49f5-86b4-440aee67c653.jpeg",
+      "url": "/uploads/test-2-bf7fd4bf-1bd1-49f5-86b4-440aee67c653.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-d8a6129d-725f-439e-aa9f-bd442c54826a.jpeg",
+      "url": "/uploads/test-reference-d8a6129d-725f-439e-aa9f-bd442c54826a.jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [
+    "Face ref file not found: /uploads/test-2-bf7fd4bf-1bd1-49f5-86b4-440aee67c653.jpeg",
+    "Body ref file not found: /uploads/test-reference-d8a6129d-725f-439e-aa9f-bd442c54826a.jpeg"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_41f55844-701d-4dd8-a825-b53081b113c4",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T16:01:31.997Z"
+    }
+  ]
+}

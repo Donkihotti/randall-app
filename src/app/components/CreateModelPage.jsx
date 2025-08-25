@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import UploadAsset from "./UploadAsset";
+import ModelSheetViewer from "./ModelSheetViewer";
 
 /*
   CreateModelPage
@@ -18,8 +19,8 @@ export default function CreateModelPage() {
   const [consentConfirmed, setConsentConfirmed] = useState(false);
 
   // arrays of URLs returned by UploadAsset.onUploaded
-  const [faceUrls, setFaceUrls] = useState([]);
-  const [bodyUrls, setBodyUrls] = useState([]);
+  const [faceUploads, setFaceUploads] = useState([]); // array of {url, filename}
+  const [bodyUploads, setBodyUploads] = useState([]);
 
   // Subject/job state
   const [subjectId, setSubjectId] = useState(null);
@@ -40,11 +41,13 @@ export default function CreateModelPage() {
   const [message, setMessage] = useState(null);
 
   // helper: update face url list
-  function onFaceUploaded(url) {
-    setFaceUrls(prev => [...prev, url]);
+  function onFaceUploaded(uploadObj) {
+    console.log("Face uploaded:", uploadObj);
+    setFaceUploads(prev => [...prev, uploadObj]);
   }
-  function onBodyUploaded(url) {
-    setBodyUrls(prev => [...prev, url]);
+  function onBodyUploaded(uploadObj) {
+    console.log("Body uploaded:", uploadObj);
+    setBodyUploads(prev => [...prev, uploadObj]);
   }
 
   async function createSubject() {
@@ -52,7 +55,7 @@ export default function CreateModelPage() {
     if (!consentConfirmed) {
       if (!confirm("You must confirm consent to continue. Do you confirm?")) return;
     }
-    if (faceUrls.length === 0 && bodyUrls.length === 0) {
+    if (faceUploads.length === 0 && bodyUploads.length === 0) {
       return alert("Please upload at least one face or body reference");
     }
 
@@ -60,13 +63,14 @@ export default function CreateModelPage() {
     setMessage("Creating subject...");
 
     try {
-      const payload = {
-        name,
-        consentConfirmed,
-        basePrompt,
-        faceRefs: faceUrls.map(u => ({ url: u })),
-        bodyRefs: bodyUrls.map(u => ({ url: u })),
-      };
+        const payload = {
+            name,
+            consentConfirmed,
+            basePrompt,
+            // store objects so server knows exact sanitized filename and URL
+            faceRefs: faceUploads.map(u => ({ url: u.url, filename: u.filename })),
+            bodyRefs: bodyUploads.map(u => ({ url: u.url, filename: u.filename })),
+          };
 
       const res = await fetch("/api/subject", {
         method: "POST",
@@ -212,9 +216,43 @@ export default function CreateModelPage() {
     }
   }
 
+  async function enqueueModelSheet(subjectId) {
+    if (!subjectId) throw new Error("No subjectId");
+    const res = await fetch(`/api/subject/${subjectId}/generate-model-sheet`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ previewOnly: true })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "enqueue failed");
+    return data; // { ok: true, jobId }
+  }
+  
+  async function pollSubjectStatus(subjectId, onUpdate = () => {}, { interval = 2000, timeout = 120000 } = {}) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const r = await fetch(`/api/subject/${subjectId}/status`);
+      if (!r.ok) {
+        // keep trying — server might be updating
+        await new Promise((r) => setTimeout(r, interval));
+        continue;
+      }
+      const j = await r.json();
+      const subject = j?.subject;
+      onUpdate(subject);
+      // terminal statuses you care about:
+      if (!subject) return null;
+      if (["awaiting-approval", "sheet_generated", "generated", "ready", "failed"].includes(subject.status)) {
+        return subject;
+      }
+      await new Promise((r) => setTimeout(r, interval));
+    }
+    throw new Error("Timeout waiting for subject status");
+  }
+
   
   return (
-    <div className="text-neutral-300 p-5 max-w-[1100px]">
+    <div className="text-neutral-300 w-full">
       <h1 className="text-header-2 mb-2 leading-none">Create Model</h1>
       <p className="text-sm font-semibold">Start by uploading a reference or start from prompt</p>
       <div className="mt-10 text-small">
@@ -252,6 +290,9 @@ export default function CreateModelPage() {
             <h3 className="text-small font-medium">Face</h3>
         </div>
             <UploadAsset onUploaded={onFaceUploaded} />
+            <div className="mt-2">
+                {faceUploads.map((f, i) => <div key={i} className="text-xs">{f.filename}</div>)}
+            </div>
         </div>
         
   
@@ -262,21 +303,17 @@ export default function CreateModelPage() {
           <UploadAsset onUploaded={onBodyUploaded} label="Upload body image" />
   
           <div className="mt-3">
-            {bodyUrls.length === 0 ? (
-              <div className="text-gray-500">No body refs yet</div>
+          {bodyUploads.length === 0 ? (
+            <div className="text-gray-500">No body refs yet</div>
             ) : (
-              <div className="flex gap-2 flex-wrap">
-                {bodyUrls.map((u, i) => (
-                  <div key={i} className="w-[160px]">
-                    <img
-                      src={u}
-                      alt={`body-${i}`}
-                      className="w-full h-[120px] object-cover rounded-md"
-                    />
-                    <div className="text-xs">{u.split("/").pop()}</div>
-                  </div>
+            <div className="flex gap-2 flex-wrap">
+                {bodyUploads.map((u, i) => (
+                <div key={i} className="w-[160px]">
+                    <img src={u.url} alt={`body-${i}`} className="w-full h-[120px] object-cover rounded-md" />
+                    <div className="text-xs">{u.filename}</div>
+                </div>
                 ))}
-              </div>
+            </div>
             )}
           </div>
         </div>
@@ -324,6 +361,29 @@ export default function CreateModelPage() {
       <div className="mt-4">
         <strong className="font-semibold">{message}</strong>
       </div>
+
+      <button
+  onClick={async () => {
+    if (!subjectId) return alert("Create a subject first");
+    try {
+      const enqueue = await enqueueModelSheet(subjectId);
+      alert("Job queued: " + enqueue.jobId);
+
+      // optionally auto-poll and update UI:
+      const result = await pollSubjectStatus(subjectId, (subject) => {
+        // This callback runs every poll — update local state/UI
+        console.log("polled subject status:", subject?.status);
+      }, { interval: 2000, timeout: 180000 });
+      console.log("Final subject:", result);
+      alert("Model sheet finished (or awaiting approval). Check the UI.");
+    } catch (err) {
+      console.error("Error queuing/polling:", err);
+      alert("Error: " + err.message);
+    }
+  }}
+>
+  Generate Model Sheet
+</button>
   
       {/* status & assets */}
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -411,6 +471,7 @@ export default function CreateModelPage() {
           </div>
         </div>
       </div>
+      {subjectId && <ModelSheetViewer subjectId={subjectId} />}
     </div>
   );
 }

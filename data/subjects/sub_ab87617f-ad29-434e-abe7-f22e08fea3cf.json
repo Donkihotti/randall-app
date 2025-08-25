@@ -1,0 +1,68 @@
+{
+  "id": "sub_ab87617f-ad29-434e-abe7-f22e08fea3cf",
+  "name": "tEST",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T16:48:49.758Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-b9e88c8e-176e-48c3-a917-e6cd59e45533.jpeg",
+      "url": "/uploads/testiiii-b9e88c8e-176e-48c3-a917-e6cd59e45533.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-ec8ccc5e-1187-41c4-9fd9-2ef642f84d24.jpeg",
+      "url": "/uploads/test-reference-ec8ccc5e-1187-41c4-9fd9-2ef642f84d24.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_ab87617f-ad29-434e-abe7-f22e08fea3cf-testiiii-b9e88c8e-176e-48c3-a917-e6cd59e45533.jpeg",
+      "origin": "/uploads/testiiii-b9e88c8e-176e-48c3-a917-e6cd59e45533.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_ab87617f-ad29-434e-abe7-f22e08fea3cf-test-reference-ec8ccc5e-1187-41c4-9fd9-2ef642f84d24.jpeg",
+      "origin": "/uploads/test-reference-ec8ccc5e-1187-41c4-9fd9-2ef642f84d24.jpeg"
+    }
+  ],
+  "warnings": [
+    "No outputs for body view front",
+    "No outputs for body view 3q-left",
+    "No outputs for body view 3q-right",
+    "No outputs for body view back",
+    "No outputs for face angle center",
+    "No outputs for face angle up-left",
+    "No outputs for face angle up",
+    "No outputs for face angle up-right",
+    "No outputs for face angle left",
+    "No outputs for face angle 3q-left",
+    "No outputs for face angle 3q-right",
+    "No outputs for face angle right",
+    "No outputs for face angle down"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_3e470680-9a17-4585-a46a-5808728db2d2",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T16:48:49.758Z"
+    },
+    {
+      "jobId": "job_c01c2403-7a4c-49f5-b067-ac3ad17fbb69",
+      "type": "generate-views",
+      "enqueuedAt": "2025-08-21T16:49:05.296Z"
+    },
+    {
+      "jobId": "job_47ac25cb-1688-46a9-8784-872bb72229c3",
+      "type": "generate-model-sheet",
+      "enqueuedAt": "2025-08-21T16:52:55.963Z"
+    }
+  ],
+  "approvedAt": "2025-08-21T16:52:50.784Z"
+}

@@ -1,0 +1,41 @@
+{
+  "id": "sub_2a69be00-0bf0-4a1e-a3f2-b6b06c0ed7e1",
+  "name": "Model 1 test",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T12:16:25.463Z",
+  "status": "awaiting-approval",
+  "faceRefs": [],
+  "bodyRefs": [
+    {
+      "filename": "1755778562071-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg",
+      "url": "/uploads/1755778562071-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg"
+    },
+    {
+      "filename": "1755778567970-1755691189145-_ (12).jpeg",
+      "url": "/uploads/1755778567970-1755691189145-_ (12).jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [
+    "Body ref file not found: /uploads/1755778562071-1755691286547-Men's Logo Waist Trunks 7-Pack.jpeg",
+    "Body ref file not found: /uploads/1755778567970-1755691189145-_ (12).jpeg",
+    "Body reference missing for model-sheet generation."
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_43fad881-36d0-4bf8-b45a-ae0c5d7d9704",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T12:16:25.464Z"
+    },
+    {
+      "jobId": "job_637588aa-4896-4f62-8ee3-4dfa4c29b2dc",
+      "type": "generate-model-sheet",
+      "enqueuedAt": "2025-08-21T12:16:56.408Z"
+    }
+  ],
+  "approvedAt": "2025-08-21T12:16:54.312Z"
+}

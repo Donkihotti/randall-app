@@ -1,0 +1,13 @@
+{
+  "id": "job_6e8081fa-49c7-450c-8f11-f3a7bbc6e544",
+  "type": "generate-model-sheet",
+  "subjectId": "sub_ac4874f1-cf6b-44d6-a050-bdd394b22f25",
+  "createdAt": "2025-08-21T18:49:32.148Z",
+  "status": "running",
+  "payload": {
+    "previewOnly": true,
+    "faceAngles": null,
+    "bodyAngles": null,
+    "settings": {}
+  }
+}

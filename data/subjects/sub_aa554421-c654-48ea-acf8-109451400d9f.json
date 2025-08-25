@@ -1,0 +1,52 @@
+{
+  "id": "sub_aa554421-c654-48ea-acf8-109451400d9f",
+  "name": "Hello",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T18:22:20.004Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-2492ee4c-dd6a-4279-b433-e8e579803089.jpeg",
+      "url": "/uploads/testiiii-2492ee4c-dd6a-4279-b433-e8e579803089.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-05f21d90-cf68-4599-8a81-6856dc51e012.jpeg",
+      "url": "/uploads/test-reference-05f21d90-cf68-4599-8a81-6856dc51e012.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_aa554421-c654-48ea-acf8-109451400d9f-testiiii-2492ee4c-dd6a-4279-b433-e8e579803089.jpeg",
+      "origin": "/uploads/testiiii-2492ee4c-dd6a-4279-b433-e8e579803089.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_aa554421-c654-48ea-acf8-109451400d9f-test-reference-05f21d90-cf68-4599-8a81-6856dc51e012.jpeg",
+      "origin": "/uploads/test-reference-05f21d90-cf68-4599-8a81-6856dc51e012.jpeg"
+    }
+  ],
+  "warnings": [
+    "Generation failed for view front: TypeError: fetch failed",
+    "Replicate returned no images for view left",
+    "Replicate returned no images for view right"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_dd1e6430-b2da-460e-97b5-eefd570141f2",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T18:22:20.004Z"
+    },
+    {
+      "jobId": "job_e304d82a-3c0d-434f-a44f-3dbb43539e70",
+      "type": "generate-views",
+      "enqueuedAt": "2025-08-21T18:22:26.911Z"
+    }
+  ]
+}

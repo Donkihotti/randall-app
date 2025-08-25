@@ -1,0 +1,32 @@
+{
+  "id": "sub_34a7ce3a-b8fc-44fa-9913-948d3e60fefa",
+  "name": "New test subject",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T16:04:58.445Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "test-2-ac3f713d-08c5-4eda-b71b-5bf48332f517.jpeg",
+      "url": "/uploads/test-2-ac3f713d-08c5-4eda-b71b-5bf48332f517.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-69142065-a3a8-4a62-bbb5-ebc570755aeb.jpeg",
+      "url": "/uploads/test-reference-69142065-a3a8-4a62-bbb5-ebc570755aeb.jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_14f0b26b-dbd1-4455-af48-b8e33e14b9f5",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T16:04:58.445Z"
+    }
+  ]
+}

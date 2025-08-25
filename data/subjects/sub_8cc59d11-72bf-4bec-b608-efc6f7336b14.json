@@ -1,0 +1,43 @@
+{
+  "id": "sub_8cc59d11-72bf-4bec-b608-efc6f7336b14",
+  "name": "New Test subject",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "Male, skinny, short hair ",
+  "createdAt": "2025-08-21T18:16:24.347Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-c7d927fb-ccbd-4063-81ee-1948f53d4299.jpeg",
+      "url": "/uploads/testiiii-c7d927fb-ccbd-4063-81ee-1948f53d4299.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-b639377f-b539-4175-a692-2e007df35ac3.jpeg",
+      "url": "/uploads/test-reference-b639377f-b539-4175-a692-2e007df35ac3.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_8cc59d11-72bf-4bec-b608-efc6f7336b14-testiiii-c7d927fb-ccbd-4063-81ee-1948f53d4299.jpeg",
+      "origin": "/uploads/testiiii-c7d927fb-ccbd-4063-81ee-1948f53d4299.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_8cc59d11-72bf-4bec-b608-efc6f7336b14-test-reference-b639377f-b539-4175-a692-2e007df35ac3.jpeg",
+      "origin": "/uploads/test-reference-b639377f-b539-4175-a692-2e007df35ac3.jpeg"
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_37ac6d5a-41f3-4496-80ba-89f4bbe6f81c",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T18:16:24.348Z"
+    }
+  ]
+}

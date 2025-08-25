@@ -1,0 +1,63 @@
+{
+  "id": "sub_4c7f6c0a-7cde-47c4-bfbc-a6f9fc9496ce",
+  "name": "Model test uusi",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T16:20:20.963Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "test-2-a08fe0ff-9e1a-4054-a503-962f027127f7.jpeg",
+      "url": "/uploads/test-2-a08fe0ff-9e1a-4054-a503-962f027127f7.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-d0bdde75-0533-4e20-9943-1f4410ae16ff.jpeg",
+      "url": "/uploads/test-reference-d0bdde75-0533-4e20-9943-1f4410ae16ff.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_4c7f6c0a-7cde-47c4-bfbc-a6f9fc9496ce-test-2-a08fe0ff-9e1a-4054-a503-962f027127f7.jpeg",
+      "origin": "/uploads/test-2-a08fe0ff-9e1a-4054-a503-962f027127f7.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_4c7f6c0a-7cde-47c4-bfbc-a6f9fc9496ce-test-reference-d0bdde75-0533-4e20-9943-1f4410ae16ff.jpeg",
+      "origin": "/uploads/test-reference-d0bdde75-0533-4e20-9943-1f4410ae16ff.jpeg"
+    }
+  ],
+  "warnings": [
+    "Error generating body front: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating body 3q-left: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating body 3q-right: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating body back: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle center: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle up-left: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle up: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle up-right: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle left: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle 3q-left: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle 3q-right: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle right: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\"",
+    "Error generating face angle down: Error: Replicate failed: \"Unable to detect your face in the photo. Please upload a different photo with a clear face.\""
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_078c216e-5a0c-47bf-a419-4af4c901b5aa",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T16:20:20.964Z"
+    },
+    {
+      "jobId": "job_9ad1518b-f890-4bbf-8b42-8e321e0dcda9",
+      "type": "generate-model-sheet",
+      "enqueuedAt": "2025-08-21T16:21:34.850Z"
+    }
+  ],
+  "approvedAt": "2025-08-21T16:20:59.533Z"
+}

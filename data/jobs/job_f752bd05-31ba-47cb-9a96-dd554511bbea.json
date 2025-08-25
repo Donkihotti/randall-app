@@ -1,0 +1,9 @@
+{
+  "id": "job_f752bd05-31ba-47cb-9a96-dd554511bbea",
+  "type": "preprocess",
+  "subjectId": "sub_e5352263-24cc-4d97-9d4b-3db1d2a0e3fe",
+  "createdAt": "2025-08-21T15:44:48.776Z",
+  "status": "done",
+  "payload": {},
+  "finishedAt": "2025-08-21T15:44:50.757Z"
+}

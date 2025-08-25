@@ -1,0 +1,34 @@
+{
+  "id": "sub_dd704494-866d-4263-941f-fa556ca5fed8",
+  "name": "testi",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T15:22:30.141Z",
+  "status": "awaiting-approval",
+  "faceRefs": [],
+  "bodyRefs": [
+    {
+      "filename": "test-2-4ebb6dd5-a39b-48cb-8d63-3ff47ac7158b.jpeg",
+      "url": "/uploads/test-2-4ebb6dd5-a39b-48cb-8d63-3ff47ac7158b.jpeg"
+    },
+    {
+      "filename": "test-reference-2e23c331-6d2b-48d0-a494-da251c66e64b.jpeg",
+      "url": "/uploads/test-reference-2e23c331-6d2b-48d0-a494-da251c66e64b.jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [
+    "Body ref file not found: /uploads/test-2-4ebb6dd5-a39b-48cb-8d63-3ff47ac7158b.jpeg",
+    "Body ref file not found: /uploads/test-reference-2e23c331-6d2b-48d0-a494-da251c66e64b.jpeg"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_4168a03e-f1fc-4fd7-bb31-75bc067d72e1",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T15:22:30.142Z"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "id": "sub_91ae39a5-7f93-4382-a01d-8fce48744090",
+  "name": "mODEL",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T18:30:46.816Z",
+  "status": "ready",
+  "faceRefs": [
+    {
+      "filename": "testiiii-a58118cb-af27-400e-82b0-4ba394233bce.jpeg",
+      "url": "/uploads/testiiii-a58118cb-af27-400e-82b0-4ba394233bce.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-dacd2e5e-1b8c-453b-8e90-942b27d8887f.jpeg",
+      "url": "/uploads/test-reference-dacd2e5e-1b8c-453b-8e90-942b27d8887f.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_91ae39a5-7f93-4382-a01d-8fce48744090-testiiii-a58118cb-af27-400e-82b0-4ba394233bce.jpeg",
+      "origin": "/uploads/testiiii-a58118cb-af27-400e-82b0-4ba394233bce.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_91ae39a5-7f93-4382-a01d-8fce48744090-test-reference-dacd2e5e-1b8c-453b-8e90-942b27d8887f.jpeg",
+      "origin": "/uploads/test-reference-dacd2e5e-1b8c-453b-8e90-942b27d8887f.jpeg"
+    }
+  ],
+  "warnings": [
+    "No outputs for body view front",
+    "No outputs for body view 3q-left",
+    "No outputs for body view 3q-right",
+    "No outputs for body view back",
+    "No outputs for face angle center",
+    "No outputs for face angle up-left",
+    "No outputs for face angle up",
+    "No outputs for face angle up-right",
+    "No outputs for face angle left",
+    "No outputs for face angle 3q-left",
+    "No outputs for face angle 3q-right",
+    "No outputs for face angle right",
+    "No outputs for face angle down"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_63ffbbee-ba61-4002-aa9a-6861df12f9b8",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T18:30:46.816Z"
+    },
+    {
+      "jobId": "job_80aa61ef-8a15-45d2-ac7b-97713afcd8ca",
+      "type": "generate-model-sheet",
+      "enqueuedAt": "2025-08-21T18:31:05.584Z"
+    }
+  ],
+  "approvedAt": "2025-08-21T18:33:49.508Z"
+}

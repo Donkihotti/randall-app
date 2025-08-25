@@ -1,0 +1,43 @@
+{
+  "id": "sub_3cc2853a-e3e4-44d9-b681-8aa8e062a868",
+  "name": "f",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T18:21:42.892Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-6844a1db-28de-4cd3-a77d-308fdf06a9c3.jpeg",
+      "url": "/uploads/testiiii-6844a1db-28de-4cd3-a77d-308fdf06a9c3.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "testiiii-d029da64-efbd-4f10-9d02-57ca5610a353.jpeg",
+      "url": "/uploads/testiiii-d029da64-efbd-4f10-9d02-57ca5610a353.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_3cc2853a-e3e4-44d9-b681-8aa8e062a868-testiiii-6844a1db-28de-4cd3-a77d-308fdf06a9c3.jpeg",
+      "origin": "/uploads/testiiii-6844a1db-28de-4cd3-a77d-308fdf06a9c3.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_3cc2853a-e3e4-44d9-b681-8aa8e062a868-testiiii-d029da64-efbd-4f10-9d02-57ca5610a353.jpeg",
+      "origin": "/uploads/testiiii-d029da64-efbd-4f10-9d02-57ca5610a353.jpeg"
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_b9777a68-b85e-4995-8102-a5bf1466988c",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T18:21:42.893Z"
+    }
+  ]
+}

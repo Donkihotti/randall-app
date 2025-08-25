@@ -1,0 +1,35 @@
+{
+  "id": "sub_e5352263-24cc-4d97-9d4b-3db1d2a0e3fe",
+  "name": "Model male test ",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T15:44:48.775Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "test-2-9461c97a-3387-4573-b07f-5417ae0a560d.jpeg",
+      "url": "/uploads/test-2-9461c97a-3387-4573-b07f-5417ae0a560d.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-fe3c4df3-f456-4832-ba33-0813a0926d8a.jpeg",
+      "url": "/uploads/test-reference-fe3c4df3-f456-4832-ba33-0813a0926d8a.jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [
+    "Face ref file not found: /uploads/test-2-9461c97a-3387-4573-b07f-5417ae0a560d.jpeg",
+    "Body ref file not found: /uploads/test-reference-fe3c4df3-f456-4832-ba33-0813a0926d8a.jpeg"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_f752bd05-31ba-47cb-9a96-dd554511bbea",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T15:44:48.776Z"
+    }
+  ]
+}

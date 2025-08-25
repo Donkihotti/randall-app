@@ -20,9 +20,15 @@
   --color-light: var(--light-gray);
   --color-side-menu: var(--menu-gray);
   --color-default-orange: var(--default-orange);
+  --color-orange-focus: var(--default-orange-dark);
+  --color-lighter: var(--light-gray-plus);
 
   --text-small: var(--sidemenu-text);
   --text-header-2: var(--header-2);
+  --text-medium: var(--text-normal);
+  --text-supersmall: var(--text-smallest);
+
+  --padding-page: var(--padding-page);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,11 +41,17 @@
     --normal: #383838;
     --dark-gray: #242424;
     --light-gray: #484848; 
+    --light-gray-plus: #828282;
     --menu-gray: #2F2F2F; 
     --default-orange: #FD5E32;
+    --default-orange-dark: #F83600;
 
     --sidemenu-text: 14px; 
     --header-2: 40px;
+    --text-normal: 24px; 
+    --text-smallest: 12px; 
+
+    --padding-page: 88px; 
   }
 }
 

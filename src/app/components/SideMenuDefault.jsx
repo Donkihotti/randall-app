@@ -1,10 +1,13 @@
-import Logo from "./Logo"
+
 import Link from "next/link"
+import UserName from "./UserName"
 
 const firstGroupLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: ''},
     { name: 'Projects', path: '/', icon: ''},
-    { name: 'Models', path: '/', icon: ''}
+    { name: 'Models', path: '/', icon: ''},
+    { name: 'Assets', path: '/', icon: ''},
+    { name: 'Templates', path: '/', icon: ''},
 ]
 
 const secondGroupLinks = [
@@ -13,7 +16,7 @@ const secondGroupLinks = [
 ]
 
 const thirdGroupLinks = [
-    { name: 'Resources', path: '/dashboard', icon: ''},
+    { name: 'Resources', path: '/resources', icon: ''},
     { name: 'Guides', path: '/', icon: ''},
 ]
 
@@ -25,24 +28,27 @@ const fourthGroupLinks = [
 export default function SideMenuDefault () { 
     return ( 
         <div className="w-52 h-screen absolute top-0 left-0 bg-side-menu border-r border-[#545454] z-10">
-            <Logo />
-            <div className="mt-16 text-small font-semibold">
-                <div className="w-full gap-y-3 flex flex-col border-b border-[#545454] pl-6 pb-6">
+            <div className="flex flex-col pl-6 py-6">
+                <UserName className="text-small text-white"/>
+                <Link className="text-[#545454]" href={'/'}>Manage Account</Link>
+            </div>
+            <div className="mt-16 text-small font-semibold flex flex-col w-full">
+                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 pb-6">
                     {firstGroupLinks.map((item, i) => (
                         <Link key={i} href={item.path}>{item.name}</Link>
                     ))}
                 </div>
-                <div className="w-full gap-y-3 flex flex-col border-b border-[#545454] pl-6 py-6">
+                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 py-6">
                     {secondGroupLinks.map((item, i) => (
                         <Link key={i} href={item.path}>{item.name}</Link>
                     ))}
                 </div>
-                <div className="w-full gap-y-3 flex flex-col border-b border-[#545454] pl-6 py-6">
+                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 py-6">
                     {thirdGroupLinks.map((item, i) => (
                         <Link key={i} href={item.path}>{item.name}</Link>
                     ))}
                 </div>
-                <div className="w-full gap-y-3 flex flex-col border-b border-[#545454] pl-6 py-6">
+                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 py-6">
                     {fourthGroupLinks.map((item, i) => (
                         <Link key={i} href={item.path}>{item.name}</Link>
                     ))}

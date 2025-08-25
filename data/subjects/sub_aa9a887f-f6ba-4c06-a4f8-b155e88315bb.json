@@ -1,0 +1,43 @@
+{
+  "id": "sub_aa9a887f-f6ba-4c06-a4f8-b155e88315bb",
+  "name": "Model 1 test subject",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "Male short hair",
+  "createdAt": "2025-08-21T18:23:47.180Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-3ad19c01-039a-4584-b1bf-dad535328eb0.jpeg",
+      "url": "/uploads/testiiii-3ad19c01-039a-4584-b1bf-dad535328eb0.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-389478a7-7d9f-4287-90fb-f89148b9ce3d.jpeg",
+      "url": "/uploads/test-reference-389478a7-7d9f-4287-90fb-f89148b9ce3d.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_aa9a887f-f6ba-4c06-a4f8-b155e88315bb-testiiii-3ad19c01-039a-4584-b1bf-dad535328eb0.jpeg",
+      "origin": "/uploads/testiiii-3ad19c01-039a-4584-b1bf-dad535328eb0.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_aa9a887f-f6ba-4c06-a4f8-b155e88315bb-test-reference-389478a7-7d9f-4287-90fb-f89148b9ce3d.jpeg",
+      "origin": "/uploads/test-reference-389478a7-7d9f-4287-90fb-f89148b9ce3d.jpeg"
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_b2ce5d78-cb92-4687-a09d-c69b685e1ff5",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T18:23:47.181Z"
+    }
+  ]
+}

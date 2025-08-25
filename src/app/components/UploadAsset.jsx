@@ -1,13 +1,15 @@
+// src/components/UploadAsset.jsx
 "use client";
 
 import React, { useRef, useState } from "react";
 
 /*
   UploadAsset props:
-    - onUploaded(url) : callback called with the public URL returned by /api/upload
+    - onUploaded(uploadObj) : callback called with the object returned by /api/upload => { url, filename }
+    - onError(err) optional
     - accept (optional) : mime types (default "image/*")
 */
-export default function UploadAsset({ onUploaded, accept = "image/*" }) {
+export default function UploadAsset({ onUploaded, onError, accept = "image/*" }) {
   const inputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [lastUrl, setLastUrl] = useState(null);
@@ -17,6 +19,9 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
     if (!file) return;
     setIsUploading(true);
     try {
+      // small client-side guard
+      if (!file.type.startsWith("image/")) throw new Error("Only image files supported");
+
       const b64 = await new Promise((resolve, reject) => {
         const fr = new FileReader();
         fr.onload = () => {
@@ -27,21 +32,29 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
         fr.readAsDataURL(file);
       });
 
+      // POST upload
       const res = await fetch("/api/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, b64 }),
       });
+
       const data = await res.json();
-      if (data?.url) {
-        setLastUrl(data.url);
-        if (typeof onUploaded === "function") onUploaded(data.url);
-      } else {
-        throw new Error(data?.error || "upload failed");
+      if (!res.ok) {
+        console.error("Upload failed response:", data);
+        throw new Error(data?.error || `Upload failed (${res.status})`);
       }
+
+      if (!data?.url) throw new Error("Upload did not return url");
+
+      // save preview url and call parent with the full object
+      setLastUrl(data.url);
+      const uploadObj = { url: data.url, filename: data.filename || data.url.split("/").pop() };
+      if (typeof onUploaded === "function") onUploaded(uploadObj);
     } catch (err) {
       console.error("UploadAsset error:", err);
-      alert("Upload failed — check console");
+      if (typeof onError === "function") onError(err);
+      alert("Upload failed — see console.");
     } finally {
       setIsUploading(false);
       setIsDragOver(false);
@@ -55,7 +68,6 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
   function onInputChange(e) {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
-    // reset so selecting the same file again triggers change
     e.target.value = "";
   }
 
@@ -68,9 +80,7 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
   }
 
   return (
-    // this outer wrapper is absolutely positioned to fill parent
-    <div className="absolute inset-0 ">
-      {/* hidden native input */}
+    <div className="relative w-full h-full">
       <input
         ref={inputRef}
         type="file"
@@ -79,7 +89,6 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
         onChange={onInputChange}
       />
 
-      {/* clickable / drop area that fills the parent */}
       <div
         role="button"
         aria-label="Upload file"
@@ -97,20 +106,22 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
         }}
         onDragLeave={() => setIsDragOver(false)}
         onDrop={onDrop}
-        // minimal styling: only positioning + cursor; drag state adds outline / faint overlay
         className={
           "absolute inset-0 cursor-pointer focus:outline-none " +
           (isUploading ? "pointer-events-none" : "")
         }
       >
-        {/* uploaded image covers the whole parent */}
-        {lastUrl && (
+        {lastUrl ? (
           <img
             src={lastUrl}
             alt="uploaded"
             className="absolute inset-0 w-full h-full object-cover"
             draggable={false}
           />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-xs text-gray-400">Drop image or click to upload</span>
+          </div>
         )}
 
         {isDragOver && (
@@ -126,12 +137,6 @@ export default function UploadAsset({ onUploaded, accept = "image/*" }) {
               </svg>
               <span className="text-sm">Uploading…</span>
             </div>
-          </div>
-        )}
-
-        {!lastUrl && !isUploading && !isDragOver && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-xs text-gray-400">Drop image or click to upload</span>
           </div>
         )}
       </div>

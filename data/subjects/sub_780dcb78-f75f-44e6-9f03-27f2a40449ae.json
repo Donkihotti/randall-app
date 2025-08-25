@@ -1,0 +1,43 @@
+{
+  "id": "sub_780dcb78-f75f-44e6-9f03-27f2a40449ae",
+  "name": "mODEL 1",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "Male, short hair skinny",
+  "createdAt": "2025-08-21T18:28:17.930Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-4e28371a-49d0-42fa-892e-143c7f75e3f6.jpeg",
+      "url": "/uploads/testiiii-4e28371a-49d0-42fa-892e-143c7f75e3f6.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-6080de16-089a-49eb-9d22-7ed0d6af1135.jpeg",
+      "url": "/uploads/test-reference-6080de16-089a-49eb-9d22-7ed0d6af1135.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_780dcb78-f75f-44e6-9f03-27f2a40449ae-testiiii-4e28371a-49d0-42fa-892e-143c7f75e3f6.jpeg",
+      "origin": "/uploads/testiiii-4e28371a-49d0-42fa-892e-143c7f75e3f6.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_780dcb78-f75f-44e6-9f03-27f2a40449ae-test-reference-6080de16-089a-49eb-9d22-7ed0d6af1135.jpeg",
+      "origin": "/uploads/test-reference-6080de16-089a-49eb-9d22-7ed0d6af1135.jpeg"
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_28458ded-2150-4d2b-a794-45c721bc2155",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T18:28:17.930Z"
+    }
+  ]
+}

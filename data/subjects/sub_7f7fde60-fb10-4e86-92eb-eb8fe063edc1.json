@@ -1,0 +1,34 @@
+{
+  "id": "sub_7f7fde60-fb10-4e86-92eb-eb8fe063edc1",
+  "name": "Model test",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": true,
+  "basePrompt": "",
+  "createdAt": "2025-08-21T12:21:14.502Z",
+  "status": "awaiting-approval",
+  "faceRefs": [],
+  "bodyRefs": [
+    {
+      "filename": "1755778849495-Men's Logo Waist Trunks 7-Pack.jpeg",
+      "url": "/uploads/1755778849495-Men's Logo Waist Trunks 7-Pack.jpeg"
+    },
+    {
+      "filename": "1755778859846-_ (12).jpeg",
+      "url": "/uploads/1755778859846-_ (12).jpeg"
+    }
+  ],
+  "assets": [],
+  "warnings": [
+    "Body ref file not found: /uploads/1755778849495-Men's Logo Waist Trunks 7-Pack.jpeg",
+    "Body ref file not found: /uploads/1755778859846-_ (12).jpeg"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_3aba7156-3d91-4404-b492-b27b1498cad9",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-21T12:21:14.502Z"
+    }
+  ]
+}
