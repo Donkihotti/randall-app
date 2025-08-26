@@ -1,10 +1,14 @@
-import Link from "next/link"
+'use client';
+
+import { useState } from "react";
+
+import StartModalNavigate from "../components/StartModalNavigate";
 import CreateBox from "./components/CreateBox"
-import SideMenuDefault from "../components/SideMenuDefault"
 import FolderBox from "./components/FolderBox"
 import PageLayout from "../components/PageLayout/PageLayout"
 
-export default function () { 
+export default function Dashboard () { 
+    const [showStartModal, setShowStartModal] = useState(false);
     return (
         <PageLayout>
             <section className="w-full h-full flex flex-col">
@@ -31,7 +35,7 @@ export default function () {
                     <div className="w-full h-1/3 flex flex-col gap-y-8 mb-11">
                         <p>My models</p>
                         <div className="flex flex-row gap-x-4">
-                            <CreateBox text={"create new model"} href={'/createModel'}/>
+                            <CreateBox text={"create new model"} onClick={() => setShowStartModal(true)}/>
                             <FolderBox text={"All models"} href={'/'}/>
                         </div>
                   </div>
@@ -44,6 +48,7 @@ export default function () {
                   </div>    
                 </section>
             </section>
+            <StartModalNavigate open={showStartModal} onClose={() => setShowStartModal(false)} />
         </PageLayout>
     )
 }

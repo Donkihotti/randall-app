@@ -5,6 +5,24 @@
   --foreground: #171717;
 }
 
+@layer components {
+  .input-default {
+    @apply appearance-none focus:outline-none focus:ring-0 focus:shadow-none bg-none border-0;
+  }
+}
+
+/* Autofill overrides for Chrome / WebKit */
+.waitlist-input:-webkit-autofill,
+.waitlist-input:-webkit-autofill:hover,
+.waitlist-input:-webkit-autofill:focus,
+.waitlist-input:-webkit-autofill:active {
+  /* text color */
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #11182700 !important;
+  /* optionally reduce autofill transition jump */
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -29,6 +47,7 @@
   --text-supersmall: var(--text-smallest);
 
   --padding-page: var(--padding-page);
+  --padding-small: var(--padding-small); 
 }
 
 @media (prefers-color-scheme: dark) {
@@ -52,6 +71,7 @@
     --text-smallest: 12px; 
 
     --padding-page: 88px; 
+    --padding-small: 12px; 
   }
 }
 

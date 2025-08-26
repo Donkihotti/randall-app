@@ -11,12 +11,12 @@ export default function StartStep({ onNext }) {
 
   return (
     <section className="w-full h-full flex items-center justify-center">
-        <div className="w-xl mx-auto p-3.5 bg-normal rounded-md shadow relative">
-        <div className="absolute top-3.5 right-3.5">
+        <div className="w-xl mx-auto p-small bg-normal rounded-md shadow relative border-[0.5px] border-light">
+        <div className="absolute top-3 right-3">
         <CloseButtonCircle /> 
         </div>   
       <h2 className="text-medium font-semibold">Name your model and create.</h2>
-        <h4 className="text-small text-lighter mt-3.5 leading-4">Models are consistent throughout generated pictures and <br/>
+        <h4 className="text-small text-lighter mt-3 leading-4">Models are consistent throughout generated pictures and <br/>
         can be used to wear different clothing or with items. </h4>
         <div className="flex flex-row gap-x-2 mt-5">
             <Image 
@@ -25,7 +25,7 @@ export default function StartStep({ onNext }) {
             height={18}
             alt="question icon"
             />
-            <Link href={"/"} className="text-small text-lighter leading-4 hover:underline">Learn more about models</Link>
+            <Link href={"/"} className="text-small text-lighter leading-4 hover:underline">Learn more about models and usecases</Link>
         </div>
       <div className="mt-8">
         <label className="block text-sm font-medium mb-2">Model name</label>

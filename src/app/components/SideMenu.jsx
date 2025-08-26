@@ -28,6 +28,7 @@ const fourthGroupLinks = [
 export default function SideMenu () { 
     return ( 
         <div className="w-56 h-screen bg-normal z-10">
+            
             <div className="flex flex-col pl-6 py-2 bg-normal-dark rounded-md ml-3.5">
                 <UserName className="text-small text-white"/>
                 <Link className="text-[#545454]" href={'/'}>Manage Account</Link>

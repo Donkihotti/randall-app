@@ -1,0 +1,62 @@
+{
+  "id": "sub_b10c2505-96ce-4469-be7c-4d00361e0496",
+  "name": "Model Test",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-25T10:13:05.148Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "testiiii-88e16646-4a2e-4866-9c56-1e24decce56a.jpeg",
+      "url": "/uploads/testiiii-88e16646-4a2e-4866-9c56-1e24decce56a.jpeg"
+    }
+  ],
+  "bodyRefs": [
+    {
+      "filename": "test-reference-0bca5c09-589b-4571-843b-005fb6bd06a7.jpeg",
+      "url": "/uploads/test-reference-0bca5c09-589b-4571-843b-005fb6bd06a7.jpeg"
+    }
+  ],
+  "assets": [
+    {
+      "type": "thumb_face",
+      "url": "/uploads/thumb-sub_b10c2505-96ce-4469-be7c-4d00361e0496-testiiii-88e16646-4a2e-4866-9c56-1e24decce56a.jpeg",
+      "origin": "/uploads/testiiii-88e16646-4a2e-4866-9c56-1e24decce56a.jpeg"
+    },
+    {
+      "type": "thumb_body",
+      "url": "/uploads/thumb-sub_b10c2505-96ce-4469-be7c-4d00361e0496-test-reference-0bca5c09-589b-4571-843b-005fb6bd06a7.jpeg",
+      "origin": "/uploads/test-reference-0bca5c09-589b-4571-843b-005fb6bd06a7.jpeg"
+    }
+  ],
+  "warnings": [
+    "No outputs for body view front",
+    "No outputs for body view 3q-left",
+    "No outputs for body view 3q-right",
+    "No outputs for body view back",
+    "No outputs for face angle center",
+    "No outputs for face angle up-left",
+    "No outputs for face angle up",
+    "No outputs for face angle up-right",
+    "No outputs for face angle left",
+    "No outputs for face angle 3q-left",
+    "No outputs for face angle 3q-right",
+    "No outputs for face angle right",
+    "No outputs for face angle down"
+  ],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_83568b99-8895-4062-81e4-8af76edf90d0",
+      "type": "preprocess",
+      "enqueuedAt": "2025-08-25T10:13:05.149Z"
+    },
+    {
+      "jobId": "job_b0319de9-159f-4861-817a-89081fd6f6c4",
+      "type": "generate-model-sheet",
+      "enqueuedAt": "2025-08-25T10:14:07.386Z"
+    }
+  ]
+}
