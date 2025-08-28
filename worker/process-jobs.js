@@ -13,6 +13,7 @@ import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { v4 as uuidv4 } from "uuid";
+import { runNanoBanana } from "./replicate-nano-banana.js";
 
 const ROOT = process.cwd();
 const JOB_DIR = path.join(ROOT, "data", "jobs");
@@ -83,6 +84,8 @@ async function processJobFile(jobFile) {
       await handleGenerateViews(job);
     } else if (job.type === "generate-model-sheet") {
       await handleGenerateModelSheet(job);
+    } else if (job.type === "generate-face" || job.type === "generate-nano-banana") {
+        await handleGenerateFaceJob(job);
     } else {
       console.warn("Unknown job type:", job.type);
     }
@@ -194,7 +197,7 @@ async function handleGenerateViews(job) {
   // fallback control image - we do not have pose maps yet
   const controlImageDataUri = baseImageDataUri;
 
-  const basePrompt = subj.basePrompt || (subj.description || "Photorealistic photograph of the same person, keep identity consistent.");
+  const basePrompt = job.payload?.promptOverride || subj.basePrompt || (subj.description || "Photorealistic photograph of the same person, keep identity consistent.");
 
   for (const view of views) {
     const prompt = `${basePrompt} View: ${view}. Photorealistic, studio lighting, high detail. Keep facial identity and clothing details consistent with the reference.`;
@@ -241,6 +244,86 @@ async function handleGenerateViews(job) {
   fs.writeFileSync(subjFile, JSON.stringify(subj, null, 2));
   console.log("Generate-views finished for", subjectId);
 }
+
+async function handleGenerateFaceJob(job) {
+    const subjectId = job.subjectId;
+    const subjFile = path.join(SUBJECT_DIR, `${subjectId}.json`);
+    if (!fs.existsSync(subjFile)) throw new Error("Subject not found for generate-face: " + subjectId);
+    const subj = JSON.parse(fs.readFileSync(subjFile, "utf8"));
+    subj.assets = subj.assets || [];
+    subj.warnings = subj.warnings || [];
+  
+    // Accept prompt override from job.payload or fallback
+    const prompt = job.payload?.prompt || job.payload?.promptOverride || subj.basePrompt || "Photorealistic portrait, front-facing, neutral expression";
+    // Optional image inputs (array of public urls or uploaded file paths)
+    const imageInputs = job.payload?.image_input || job.payload?.image_input_urls || (subj.faceRefs || []).map(f => f.url).filter(Boolean);
+  
+    // Build Replicate input
+    const input = { prompt };
+    if (Array.isArray(imageInputs) && imageInputs.length) {
+      // nano-banana expects image_input: [url1, ...]
+      input.image_input = imageInputs;
+    }
+  
+    console.log(`generate-face job for ${subjectId}: prompt="${prompt}" images=${(input.image_input||[]).length}`);
+  
+    try {
+      const res = await runNanoBanana(input); // your helper
+      if (!res || !res.ok) {
+        const errMsg = res?.error || "Unknown error from runNanoBanana";
+        console.error("Nano-banana failed:", errMsg);
+        subj.warnings.push(`Face generation failed: ${errMsg}`);
+        subj.status = "failed";
+        fs.writeFileSync(subjFile, JSON.stringify(subj, null, 2));
+        return;
+      }
+  
+      // res.saved is expected to be [{ url, path }, ...]
+      const saved = res.saved || [];
+      if (!saved.length) {
+        subj.warnings.push("Face generation returned no files.");
+        subj.status = "failed";
+        fs.writeFileSync(subjFile, JSON.stringify(subj, null, 2));
+        return;
+      }
+  
+      // Attach generated outputs to subject assets and optionally register as faceRef
+      for (let i = 0; i < saved.length; i++) {
+        const s = saved[i];
+        // canonicalize url path
+        subj.assets.push({
+          type: "generated_face",
+          url: s.url,
+          path: s.path,
+          generatedAt: new Date().toISOString(),
+          meta: { jobId: job.id, promptUsed: prompt, idx: i }
+        });
+  
+        // Optionally add the first generated face as a faceRef so future steps use it:
+        if (i === 0) {
+          subj.faceRefs = subj.faceRefs || [];
+          subj.faceRefs.unshift({
+            filename: path.basename(s.path),
+            url: s.url,
+            generated: true,
+            generatedAt: new Date().toISOString()
+          });
+        }
+      }
+  
+      // update subject status so UI/polling picks it up
+      subj.status = job.payload?.previewOnly ? "awaiting-approval" : "generated";
+      fs.writeFileSync(subjFile, JSON.stringify(subj, null, 2));
+  
+      console.log(`generate-face job done for ${subjectId}; saved ${saved.length} files`);
+    } catch (err) {
+      console.error("handleGenerateFaceJob error:", err);
+      subj.warnings.push("Face generation error: " + String(err));
+      subj.status = "failed";
+      try { fs.writeFileSync(subjFile, JSON.stringify(subj, null, 2)); } catch (e) {}
+      throw err;
+    }
+  }
 
 /* ------------------ GENERATE MODEL SHEET (bodies + faces) ------------------ */
 

@@ -1,0 +1,22 @@
+{
+  "id": "sub_0ebe4346-295f-482b-aac5-586e3d5aedb3",
+  "name": "Model",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-26T10:58:09.318Z",
+  "status": "awaiting-approval",
+  "faceRefs": [],
+  "bodyRefs": [],
+  "assets": [],
+  "warnings": [],
+  "metadata": {},
+  "jobs": [
+    {
+      "jobId": "job_c5e53b5c-16c0-4f44-9300-31aeee5ab19c",
+      "type": "generate-model-sheet",
+      "enqueuedAt": "2025-08-26T10:58:09.727Z"
+    }
+  ]
+}

@@ -30,7 +30,7 @@ export default function StartModalNavigate({ open, onClose }) {
     <Modal open={open} onClose={onClose} title="Start a new model">
     <form className="w-xl mx-auto p-4 bg-normal rounded-md shadow relative border-[0.5px] border-light" onSubmit={handleCreate}>
         <div className="absolute top-4 right-4">
-            <button onClick={onClose} className="p-0.5 bg-normal-dark rounded-full hover:cursor-pointer">
+            <button onClick={onClose} className="p-0.5 bg-normal hover:bg-normal-dark rounded-full hover:cursor-pointer">
                 <Image 
                 src={"/Close_round_light.svg"}
                 alt="close icon, X"
@@ -43,7 +43,7 @@ export default function StartModalNavigate({ open, onClose }) {
         <h4 className="text-small text-lighter mt-3 leading-4">Models are consistent throughout generated pictures and <br/>
         can be used to wear different clothing or with items. </h4>
       <div className="mt-8">
-        <label className="block text-sm font-medium mb-2">Model name</label>
+        <label className="block text-sm font-medium mb-1 text-lighter">Model name</label>
         <div className="flex flex-row gap-x-3 items-center bg-normal-dark pr-1 rounded-xs">
         <input 
         className="input-default px-2 py-2 m-1 w-full bg-normal-dark rounded-xs h-full text-small" 

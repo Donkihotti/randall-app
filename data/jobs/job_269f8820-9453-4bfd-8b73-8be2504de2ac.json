@@ -1,0 +1,18 @@
+{
+  "id": "job_269f8820-9453-4bfd-8b73-8be2504de2ac",
+  "type": "generate-model-sheet",
+  "subjectId": "sub_104faea3-4577-44d6-b5b7-e5bde9edfce6",
+  "createdAt": "2025-08-27T08:15:55.824Z",
+  "status": "done",
+  "payload": {
+    "previewOnly": true,
+    "faceAngles": null,
+    "bodyAngles": null,
+    "settings": {
+      "steps": 20,
+      "guidance_scale": 7.5,
+      "prompt_strength": 0.45
+    }
+  },
+  "finishedAt": "2025-08-27T08:15:56.033Z"
+}

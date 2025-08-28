@@ -1,0 +1,34 @@
+{
+  "id": "sub_2fbe8fac-943a-4c01-9b93-e029f62b35c1",
+  "name": "model",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-28T15:09:21.412Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "rep-nb-sub_2fbe8fac-943a-4c01-9b93-e029f62b35c1-1756393773215-0.png",
+      "url": "/generated/rep-nb-sub_2fbe8fac-943a-4c01-9b93-e029f62b35c1-1756393773215-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T15:09:33.954Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/rep-nb-sub_2fbe8fac-943a-4c01-9b93-e029f62b35c1-1756393773215-0.png",
+      "createdAt": "2025-08-28T15:09:33.954Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Photorealistic headshot of a young caucasian male in a studio setting. Background gray. Sharp facial features, skinny, blond buzzcut",
+        "source": "https://replicate.delivery/xezq/IhsHP0d5TTZbM9PC5fQqWcQHucsZLEbAJExq3Vpk9ZxWGxnKA/tmp_svhgcfe.jpg"
+      }
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

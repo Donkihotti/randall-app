@@ -1,0 +1,16 @@
+{
+  "id": "sub_84ed42b9-f416-4733-8978-f82fac54bb7b",
+  "name": "Model",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-27T08:58:16.136Z",
+  "status": "awaiting-generation",
+  "faceRefs": [],
+  "bodyRefs": [],
+  "assets": [],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

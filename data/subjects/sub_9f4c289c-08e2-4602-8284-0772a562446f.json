@@ -1,0 +1,50 @@
+{
+  "id": "sub_9f4c289c-08e2-4602-8284-0772a562446f",
+  "name": "Model",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-28T09:30:13.214Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "rep-nb-sub_9f4c289c-08e2-4602-8284-0772a562446f-1756373459012-0.png",
+      "url": "/generated/rep-nb-sub_9f4c289c-08e2-4602-8284-0772a562446f-1756373459012-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T09:31:00.082Z"
+    },
+    {
+      "filename": "rep-nb-sub_9f4c289c-08e2-4602-8284-0772a562446f-1756373441393-0.png",
+      "url": "/generated/rep-nb-sub_9f4c289c-08e2-4602-8284-0772a562446f-1756373441393-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T09:30:43.492Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/rep-nb-sub_9f4c289c-08e2-4602-8284-0772a562446f-1756373441393-0.png",
+      "createdAt": "2025-08-28T09:30:43.492Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Create a griffon in a studio setting that is black add some noise to the image",
+        "source": "https://replicate.delivery/xezq/4J5uIEe5N3ziC6chzIsMew6VKdpe3Or7edYvNWNMnAyG809UB/tmpfohry8jc.jpg"
+      }
+    },
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/rep-nb-sub_9f4c289c-08e2-4602-8284-0772a562446f-1756373459012-0.png",
+      "createdAt": "2025-08-28T09:31:00.082Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Create a griffon dog in a studio setting that is black add some noise to the image",
+        "source": "https://replicate.delivery/xezq/FHVLAMIdoN7BAN0hpHTkfN9HlEErdTUuReVaUOM45ezle09UB/tmp0kfb50s5.jpg"
+      }
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

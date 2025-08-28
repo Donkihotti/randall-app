@@ -9,6 +9,9 @@
   .input-default {
     @apply appearance-none focus:outline-none focus:ring-0 focus:shadow-none bg-none border-0;
   }
+  .textarea-default {
+    @apply appearance-none outline-none resize-none border-none bg-transparent shadow-none p-2 m-0;
+  }
 }
 
 /* Autofill overrides for Chrome / WebKit */
@@ -38,7 +41,7 @@
   --color-light: var(--light-gray);
   --color-side-menu: var(--menu-gray);
   --color-default-orange: var(--default-orange);
-  --color-orange-focus: var(--default-orange-dark);
+  --color-orange-focus: var(--default-orange-hover);
   --color-lighter: var(--light-gray-plus);
 
   --text-small: var(--sidemenu-text);
@@ -63,7 +66,7 @@
     --light-gray-plus: #828282;
     --menu-gray: #2F2F2F; 
     --default-orange: #FD5E32;
-    --default-orange-dark: #F83600;
+    --default-orange-hover: #ff8665;
 
     --sidemenu-text: 14px; 
     --header-2: 40px;

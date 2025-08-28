@@ -1,0 +1,16 @@
+{
+  "id": "sub_ec1c1052-5546-4f4e-9f45-4b0a75295cc5",
+  "name": "Model test",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-26T13:31:14.914Z",
+  "status": "awaiting-generation",
+  "faceRefs": [],
+  "bodyRefs": [],
+  "assets": [],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

@@ -1,27 +1,22 @@
-// src/components/Modal.jsx
 "use client";
 
 import { useEffect, useRef } from "react";
 
 export default function Modal({ open, onClose, title, children, ariaLabel }) {
   const overlayRef = useRef(null);
+  const modalRef = useRef(null); // <-- content ref
   const lastActiveRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       lastActiveRef.current = document.activeElement;
-      // trap focus: focus the overlay or first focusable child
-      setTimeout(() => {
-        overlayRef.current?.focus?.();
-      }, 0);
+      setTimeout(() => overlayRef.current?.focus?.(), 0);
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
       try { lastActiveRef.current?.focus?.(); } catch (e) {}
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [open]);
 
   useEffect(() => {
@@ -40,14 +35,17 @@ export default function Modal({ open, onClose, title, children, ariaLabel }) {
       tabIndex={-1}
       aria-label={ariaLabel || title || "modal"}
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      onMouseDown={(e) => {
-        // click outside to close (only when clicking overlay)
-        if (e.target === overlayRef.current) onClose?.();
+      // Use pointerdown so it works better on touch devices;
+      // handler checks whether click was outside modalRef
+      onPointerDown={(e) => {
+        if (modalRef.current && !modalRef.current.contains(e.target)) {
+          onClose?.();
+        }
       }}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" />
 
-      <div className="relative z-10 max-w-2xl w-full">
+      <div ref={modalRef} className="relative z-10 max-w-2xl w-full">
         <div>
           <div className="p-5">{children}</div>
         </div>

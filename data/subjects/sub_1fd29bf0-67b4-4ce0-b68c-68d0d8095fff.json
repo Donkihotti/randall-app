@@ -1,0 +1,34 @@
+{
+  "id": "sub_1fd29bf0-67b4-4ce0-b68c-68d0d8095fff",
+  "name": "mo",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-28T15:08:03.146Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "rep-nb-sub_1fd29bf0-67b4-4ce0-b68c-68d0d8095fff-1756393703370-0.png",
+      "url": "/generated/rep-nb-sub_1fd29bf0-67b4-4ce0-b68c-68d0d8095fff-1756393703370-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T15:08:24.274Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/rep-nb-sub_1fd29bf0-67b4-4ce0-b68c-68d0d8095fff-1756393703370-0.png",
+      "createdAt": "2025-08-28T15:08:24.274Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Photorealistic headshot of a young caucasian male in a studio setting. Background gray. Sharp facial features, skinny, blond buzzcut add a tiny bit of noise",
+        "source": "https://replicate.delivery/xezq/Doir3hgVHp5TD9UfSvdqVm4Kiu3nbCZbm1g906xRU4ozFxnKA/tmpkmoeenas.jpg"
+      }
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}
