@@ -1,0 +1,16 @@
+{
+  "id": "sub_9240b9a7-8302-48d1-83be-8ec56579f067",
+  "name": "mODEL",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-30T16:13:32.563Z",
+  "status": "awaiting-generation",
+  "faceRefs": [],
+  "bodyRefs": [],
+  "assets": [],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

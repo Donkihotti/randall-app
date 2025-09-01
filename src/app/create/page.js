@@ -113,11 +113,12 @@ export default function Home() {
 
   return (
     <div style={{  fontFamily: "system-ui, sans-serif" }} className="text-black mt-12 overflow-hidden">
-        <div className="w-screen h-[70vh] bg-neutral-600"></div>
-      
+        <div className="w-screen h-[70vh] bg-neutral-600">
+
+        </div>
     <div className="p-5 flex flex-col">
       <section style={{ display: "flex", gap: 20, marginBottom: 12 }}>
-      <SelectField
+        <SelectField
         label="Subject type"
         value={subjectType}
         onChange={e => setSubjectType(e.target.value)}

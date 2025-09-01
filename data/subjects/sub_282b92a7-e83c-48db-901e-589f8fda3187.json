@@ -1,0 +1,50 @@
+{
+  "id": "sub_282b92a7-e83c-48db-901e-589f8fda3187",
+  "name": "Testtttt",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-28T16:52:30.184Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "nb-sub_282b92a7-e83c-48db-901e-589f8fda3187-1756400003258-0.png",
+      "url": "/generated/nb-sub_282b92a7-e83c-48db-901e-589f8fda3187-1756400003258-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T16:53:24.259Z"
+    },
+    {
+      "filename": "nb-sub_282b92a7-e83c-48db-901e-589f8fda3187-1756399977251-0.png",
+      "url": "/generated/nb-sub_282b92a7-e83c-48db-901e-589f8fda3187-1756399977251-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T16:52:57.972Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_282b92a7-e83c-48db-901e-589f8fda3187-1756399977251-0.png",
+      "createdAt": "2025-08-28T16:52:57.972Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Photorealistic headshot of a young caucasian male in a studio setting. Background gray. Sharp facial features, skinny, long curvy hair ",
+        "source": "https://replicate.delivery/xezq/FJgsP8F0QG5BB164WCFB09fHH7rVwnzAIJrCYqeQdFsptjPVA/tmp0g21ml8d.jpg"
+      }
+    },
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_282b92a7-e83c-48db-901e-589f8fda3187-1756400003258-0.png",
+      "createdAt": "2025-08-28T16:53:24.259Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Make the hair darker",
+        "source": "https://replicate.delivery/xezq/EUlJWqWjQCbNP1d4IvSy5MGhhFtfvsmvrsfHasOYGsDCujPVA/tmpbmeljyup.jpg"
+      }
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

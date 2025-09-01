@@ -1,0 +1,50 @@
+{
+  "id": "sub_0aa7b816-918e-421e-8aa2-d96957360f18",
+  "name": "Testtttt",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-28T17:08:22.897Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "nb-sub_0aa7b816-918e-421e-8aa2-d96957360f18-1756402455999-0.png",
+      "url": "/generated/nb-sub_0aa7b816-918e-421e-8aa2-d96957360f18-1756402455999-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T17:34:18.026Z"
+    },
+    {
+      "filename": "nb-sub_0aa7b816-918e-421e-8aa2-d96957360f18-1756400913269-0.png",
+      "url": "/generated/nb-sub_0aa7b816-918e-421e-8aa2-d96957360f18-1756400913269-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T17:08:34.704Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_0aa7b816-918e-421e-8aa2-d96957360f18-1756400913269-0.png",
+      "createdAt": "2025-08-28T17:08:34.704Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Photorealistic headshot of a young caucasian male in a studio setting. Background gray. Sharp facial features, skinny, blond buzzcut",
+        "source": "https://replicate.delivery/xezq/rcWFUJCEkb5QHdMvgt6ZnTiL0cLEYeMPhDSM2f41B0IQ8jPVA/tmpocyujk6t.jpg"
+      }
+    },
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_0aa7b816-918e-421e-8aa2-d96957360f18-1756402455999-0.png",
+      "createdAt": "2025-08-28T17:34:18.026Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Make it face the camera and no shirt ",
+        "source": "https://replicate.delivery/xezq/8rcHphXqlSLPMJMDP54c7hf83npovkaEI0oq8yrOVO9LKynKA/tmpgmyabhf6.jpg"
+      }
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import ButtonOrange from "./ButtonOrange";
 
 export default function FlowNavButtons({
   onBack,
@@ -14,20 +15,19 @@ export default function FlowNavButtons({
       <button
         onClick={onBack}
         disabled={backDisabled}
-        className="px-4 py-2 border rounded bg-white/10 hover:bg-white/20 disabled:opacity-40"
+        className="bg-normal text-white rounded-xs px-6 py-1 transition-all duration-150 flex flex-row items-center gap-x-2 "
         type="button"
       >
         {backLabel}
       </button>
 
-      <button
+      <ButtonOrange
         onClick={onContinue}
         disabled={continueDisabled}
-        className="px-4 py-2 bg-default-orange text-white rounded hover:bg-orange-600 disabled:opacity-40"
         type="button"
       >
         {continueLabel}
-      </button>
+      </ButtonOrange>
     </div>
   );
 }

@@ -8,9 +8,9 @@ export default function LoadingOverlay({ visible = false, message = "Generating 
       <div className="text-center">
         <div className="mb-4">
           {/* simple CSS spinner */}
-          <div className="inline-block w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          <div className="inline-block w-12 h-12 border-4 border-default-orange border-t-transparent rounded-full animate-spin" />
         </div>
-        <div className="text-white text-sm">{message}</div>
+        <div className="text-default-white text-sm">{message}</div>
       </div>
     </div>
   );

@@ -1,0 +1,66 @@
+{
+  "id": "sub_25e4b2b2-1825-4503-b34d-17cc96959ed8",
+  "name": "T",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-08-28T16:16:13.642Z",
+  "status": "awaiting-approval",
+  "faceRefs": [
+    {
+      "filename": "nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397857127-0.png",
+      "url": "/generated/nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397857127-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T16:17:38.190Z"
+    },
+    {
+      "filename": "nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397820466-0.png",
+      "url": "/generated/nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397820466-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T16:17:01.543Z"
+    },
+    {
+      "filename": "nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397791485-0.png",
+      "url": "/generated/nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397791485-0.png",
+      "generated": true,
+      "generatedAt": "2025-08-28T16:16:32.904Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397791485-0.png",
+      "createdAt": "2025-08-28T16:16:32.904Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Photorealistic headshot of a young caucasian male in a studio setting. Background gray. Sharp facial features, skinny, blond buzzcut",
+        "source": "https://replicate.delivery/xezq/LltSl4Kmao4kJhe4asAmuXK1Jtf2PTdbWz9uAayWY8ufWGfUB/tmpitt39x0j.jpg"
+      }
+    },
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397820466-0.png",
+      "createdAt": "2025-08-28T16:17:01.543Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Make hair dark and eyes green. Lose the shirt",
+        "source": "https://replicate.delivery/xezq/mdB6rueEo5T2EqMIPeXf7ujwl4GeK97jOPLPNJGaT8MxvMepC/tmpgaw98chh.jpg"
+      }
+    },
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_25e4b2b2-1825-4503-b34d-17cc96959ed8-1756397857127-0.png",
+      "createdAt": "2025-08-28T16:17:38.190Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "The eyes are too green so make them more realistic",
+        "source": "https://replicate.delivery/xezq/UQ0rdyQ36s7FD9zgVhB7rzU2AxsZLOXXfH0JYS0pOPJQmxnKA/tmph7mk31fy.jpg"
+      }
+    }
+  ],
+  "warnings": [],
+  "metadata": {},
+  "jobs": []
+}

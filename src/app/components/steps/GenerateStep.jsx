@@ -117,7 +117,6 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
       </div>
       <h2 className="text-lg font-semibold mb-3">Generate face reference for {name || "Unnamed model"}</h2>
       <form onSubmit={handleGenerate} className="space-y-4">
-        <label className="block text-sm font-medium">Prompt (describe the person)</label>
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} className="textarea-default w-full p-2 bg-normal rounded-md" placeholder="Photorealistic female model, neutral expression..." />
 
         <div className="grid grid-cols-3 gap-3">
@@ -140,7 +139,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
             {isGenerating ? "Generating…" : "Create"}
           </ButtonOrange>
 
-          <button type="button" onClick={() => setStatus?.("choose")} className=" border rounded">
+          <button type="button" onClick={() => setStatus?.("choose")} className="px-2 bg-normal rounded-xs">
             Back
           </button>
         </div>

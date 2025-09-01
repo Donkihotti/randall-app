@@ -1,0 +1,172 @@
+{
+  "id": "sub_cd552517-4de3-4caa-bcad-ea72bec625db",
+  "name": "terst",
+  "description": "",
+  "brand": null,
+  "consentConfirmed": false,
+  "basePrompt": "",
+  "createdAt": "2025-09-01T05:47:09.737Z",
+  "status": "sheet_generated",
+  "faceRefs": [
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714463541-8-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714463541-8-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:14:24.452Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714454424-7-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714454424-7-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:14:15.258Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714443318-6-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714443318-6-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:14:04.394Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714430567-5-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714430567-5-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:13:51.577Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714417056-4-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714417056-4-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:13:37.823Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714407010-3-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714407010-3-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:13:27.993Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714397475-2-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714397475-2-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:13:18.593Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714386721-1-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714386721-1-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T08:13:07.745Z"
+    },
+    {
+      "filename": "nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756705651617-0.png",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756705651617-0.png",
+      "generated": true,
+      "generatedAt": "2025-09-01T05:47:32.519Z"
+    }
+  ],
+  "bodyRefs": [],
+  "assets": [
+    {
+      "type": "generated_face_replicate",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756705651617-0.png",
+      "createdAt": "2025-09-01T05:47:32.519Z",
+      "meta": {
+        "model": "google/nano-banana",
+        "prompt": "Photorealistic headshot of a young caucasian female in a studio setting. Background gray. Sharp facial features, skinny, brown hair",
+        "source": "https://replicate.delivery/xezq/vRPjveSzGeo6y0XucfnDpylRODiaN6TAAq3lmfL87mYMX5CVB/tmpbe1w_036.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "up-left",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714386721-1-0.png",
+      "createdAt": "2025-09-01T08:13:07.745Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, head tilted up and left (15° up, 20° left). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/ubc2G5shM8YuB916qblfdjl62SMs4TF29ODx0oerZrFSeghqA/tmpo0k_hht5.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "up",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714397475-2-0.png",
+      "createdAt": "2025-09-01T08:13:18.593Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, head tilted up slightly (15° up). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/FSEfPiQSM8QjS6neSCX6MevbR6MNV5iSUSsBhTpIs8o78ghqA/tmptm4u36l1.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "up-right",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714407010-3-0.png",
+      "createdAt": "2025-09-01T08:13:27.993Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, head tilted up and right (15° up, 20° right). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/nZfGUSTh6Y2jBiw8necNroN2dFF5mA4teCsOMDShNnbN9ghqA/tmpq5q4c525.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "left",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714417056-4-0.png",
+      "createdAt": "2025-09-01T08:13:37.823Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, head turned left (45°). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/iIrPEpg9SObqIJftFnstKaEklpKmtfd7YeHmSJMeAh6D7BDVB/tmpjdbggzir.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "3q-left",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714430567-5-0.png",
+      "createdAt": "2025-09-01T08:13:51.577Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, 3/4 left portrait (30° left). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/vp0NRfR8BN2hLix9pXHlxTntxsyaz8SkoFjPbnBombFfeghqA/tmpgl_8ek7n.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "3q-right",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714443318-6-0.png",
+      "createdAt": "2025-09-01T08:14:04.394Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, 3/4 right portrait (30° right). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/lKkFI8xK90qjF1uI0fBI02gqcYepX7UBILHekg8mQeDu8BDVB/tmp2fs9fcwx.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "right",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714454424-7-0.png",
+      "createdAt": "2025-09-01T08:14:15.258Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, head turned right (45°). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/efu7kjV1tLhL5EVrRrQ9HXEjzCLkO0RD6V7ottzAWA8WfghqA/tmpqka78_k4.jpg"
+      }
+    },
+    {
+      "type": "sheet_face",
+      "angle": "down",
+      "url": "/generated/nb-sub_cd552517-4de3-4caa-bcad-ea72bec625db-1756714463541-8-0.png",
+      "createdAt": "2025-09-01T08:14:24.452Z",
+      "meta": {
+        "prompt": "Photorealistic close-up portrait, neutral expression, studio lighting. Close-up portrait, head tilted down slightly (15° down). Photorealistic, high detail, preserve identity and facial features. Neutral expression.",
+        "model": "google/nano-banana",
+        "source": "https://replicate.delivery/xezq/5xAWmVdq7KIYKVfoEFrMfNqQqZKnNF4HCZvltvObTyOfeBDVB/tmpp_9qckao.jpg"
+      }
+    }
+  ],
+  "warnings": [
+    "Replicate error for angle center: Error: Prediction failed: No image content found in response"
+  ],
+  "metadata": {},
+  "jobs": []
+}
