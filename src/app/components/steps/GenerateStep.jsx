@@ -10,8 +10,8 @@ import ButtonOrange from "../buttons/ButtonOrange";
  *  - subjectId (optional)
  *  - name (optional)
  *  - showNotification(fn)
- *  - onQueued({ jobId, subjectId })  // called after generation (job enqueued OR preview ready)
- *  - setStatus(optional)
+ *  - onQueued({ jobId, subjectId, images, subject })  // called after generation (job enqueued OR preview ready)
+ *  - setStatus(optional) -- optional (prefer parent handle)
  */
 export default function GenerateStep({ subjectId: propSubjectId, name: propName = "", showNotification, onQueued, setStatus }) {
   const [subjectId, setSubjectId] = useState(propSubjectId || null);
@@ -22,8 +22,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
   const [promptStrength, setPromptStrength] = useState(0.45);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [previewImages, setPreviewImages] = useState([]); // array of { url }
-  const [isGeneratingLocal, setIsGeneratingLocal] = useState(false);
+  const [previewImages, setPreviewImages] = useState([]); // array of { url, meta }
 
   async function createDraftIfNeeded() {
     if (subjectId) return subjectId;
@@ -36,8 +35,9 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
     });
     const j = await res.json();
     if (!res.ok) throw new Error(j?.error || "Failed to create draft subject");
-    setSubjectId(j.subjectId || (j.subject && j.subject.id) || null);
-    return j.subjectId || (j.subject && j.subject.id) || null;
+    const sid = j.subjectId || (j.subject && j.subject.id) || null;
+    setSubjectId(sid);
+    return sid;
   }
 
   async function handleGenerate(e) {
@@ -47,12 +47,10 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
       return;
     }
     setIsGenerating(true);
-    setIsGeneratingLocal(true);
     try {
       const id = await createDraftIfNeeded();
       if (!id) throw new Error("Could not create subject");
 
-      // build request body
       const body = {
         previewOnly: true,
         prompt: prompt || undefined,
@@ -70,13 +68,11 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         credentials: "include",
       });
 
-      // defensive: if not ok and response body is html, capture text
       const contentType = res.headers.get("content-type") || "";
       let j = null;
       if (contentType.includes("application/json")) {
         j = await res.json().catch(() => null);
       } else {
-        // non-json -> read text for debug
         const txt = await res.text().catch(() => null);
         throw new Error("Unexpected server response: " + (txt ? txt.slice(0, 200) : "no body"));
       }
@@ -85,40 +81,35 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         throw new Error(j?.error || "Generation failed");
       }
 
-      // server may either return immediate images OR a jobId (async)
-      // handle both cases
+      // Normalize jobId and images
       const jobId = j?.jobId ?? j?.data?.jobId ?? j?.id ?? null;
-      const images = (j.images || []).map(i => (typeof i === 'string' ? { url: i } : i));
-      onQueued?.({ jobId: j.jobId || null, subjectId: id, images, subject: j.subject || null });  
+      const rawImages = Array.isArray(j?.images) ? j.images : [];
+      const images = rawImages.map(i => (typeof i === "string" ? { url: i } : { url: i.url || i, meta: i.meta || {} })).filter(x => x.url);
 
-      if (Array.isArray(images) && images.length > 0) {
-        const mapped = images.map((i) => ({ url: i.url || i }));
-        setPreviewImages(mapped);
+      // Update local preview UI
+      if (images.length > 0) {
+        setPreviewImages(images);
         showNotification?.("Preview generated", "info");
-      
-        // inform parent and advance to preview step (no manual Accept)
-        // <-- PASS IMAGES to parent so it can show them and prevent poll override
-        onQueued?.({ jobId: jobId || null, subjectId: id, images: mapped });
-        if (setStatus) setStatus("generate-preview");
       } else if (jobId) {
-        onQueued?.({ jobId, subjectId: id });
         showNotification?.("Generation queued — waiting for previews", "info");
       } else {
         showNotification?.("No preview or job returned from server", "error");
         console.warn("generate-face: unexpected response", j);
       }
 
+      // Single, normalized onQueued call
+      onQueued?.({ jobId, subjectId: id, images, subject: j?.subject || null });
+
+      // NOTE: do not call setStatus here — let parent control status to avoid races
     } catch (err) {
       console.error("GenerateStep generate error", err);
       showNotification?.("Generation failed: " + (err.message || err), "error");
     } finally {
       setIsGenerating(false);
-      setIsGeneratingLocal(false);
     }
   }
 
   function handleRegenerate() {
-    // clear preview and let user generate again
     setPreviewImages([]);
     showNotification?.("Ready to regenerate", "info");
   }
@@ -172,8 +163,8 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         </div>
 
         <div className="flex gap-3">
-          <ButtonOrange type="submit" disabled={isGeneratingLocal}>
-            {isGeneratingLocal ? "Generating…" : "Create"}
+          <ButtonOrange type="submit" disabled={isGenerating}>
+            {isGenerating ? "Generating…" : "Create"}
           </ButtonOrange>
 
           <button type="button" onClick={() => setStatus?.("choose")} className="px-2 bg-normal rounded-xs">
