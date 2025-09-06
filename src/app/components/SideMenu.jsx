@@ -1,60 +1,197 @@
+'use client'
 
-import Link from "next/link"
-import UserName from "./UserName"
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import Image from 'next/image'
+import ButtonOrange from './buttons/ButtonOrange'
 
 const firstGroupLinks = [
-    { name: 'Dashboard', path: '/dashboard', icon: ''},
-    { name: 'Projects', path: '/', icon: ''},
-    { name: 'Models', path: '/', icon: ''},
-    { name: 'Assets', path: '/', icon: ''},
-    { name: 'Templates', path: '/', icon: ''},
+  { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
+  { name: 'Projects', path: '/', icon: '/Folders.svg', alt: 'folders-icon'  },
+  { name: 'Models', path: '/', icon: '/Users_Group.svg', alt: 'models icon' },
+  { name: 'Assets', path: '/', icon: '/Drag_Horizontal.svg', alt: 'models icon' },
+  { name: 'Templates', path: '/', icon: '/Layers.svg', alt: 'Templates icon' },
 ]
 
 const secondGroupLinks = [
-    { name: 'Account', path: '/dashboard', icon: ''},
-    { name: 'Buy credits', path: '/', icon: ''},
+  { name: 'Account', path: '/dashboard', icon: '/User_02.svg', alt: 'user icon' },
+  { name: 'Buy credits', path: '/', icon: '/Shopping_Bag_01.svg', alt: 'Shopping bag icon' },
 ]
 
 const thirdGroupLinks = [
-    { name: 'Resources', path: '/resources', icon: ''},
-    { name: 'Guides', path: '/', icon: ''},
+  { name: 'Guides', path: '/', icon: '/Notebook.svg', alt: 'Notebook icon' },
 ]
 
 const fourthGroupLinks = [
-    { name: 'Feedback', path: '/dashboard', icon: ''},
-    { name: 'Report a bug', path: '/', icon: ''},
+  { name: 'Feedback', path: '/dashboard', icon: '/Paper_Plane.svg', alt: 'Paper plane icon'  },
+  { name: 'Report a bug', path: '/', icon: '/Shield_Warning.svg', alt: 'warning icon, report a bug'  },
 ]
 
-export default function SideMenu () { 
-    return ( 
-        <div className="w-56 h-screen bg-normal z-10">
-            
-            <div className="flex flex-row pl-2 py-2 overflow-hidden bg-normal-dark rounded-md ml-3.5 items-center gap-x-3">
-                <div className="h-7 w-7 bg-default-orange rounded-xs"></div>
-                <UserName className="text-small text-white leading-none"/>
-            </div>
-            <div className="mt-16 text-small font-semibold flex flex-col w-full">
-                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 pb-6">
-                    {firstGroupLinks.map((item, i) => (
-                        <Link key={i} href={item.path}>{item.name}</Link>
-                    ))}
-                </div>
-                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 py-6">
-                    {secondGroupLinks.map((item, i) => (
-                        <Link key={i} href={item.path}>{item.name}</Link>
-                    ))}
-                </div>
-                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 py-6">
-                    {thirdGroupLinks.map((item, i) => (
-                        <Link key={i} href={item.path}>{item.name}</Link>
-                    ))}
-                </div>
-                <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] pl-6 py-6">
-                    {fourthGroupLinks.map((item, i) => (
-                        <Link key={i} href={item.path}>{item.name}</Link>
-                    ))}
-                </div>
-            </div>
+export default function SideMenu() {
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function loadProfile() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch('/api/profile/me', {
+          method: 'GET',
+          credentials: 'same-origin', // IMPORTANT: send cookies
+          headers: { 'Accept': 'application/json' },
+        })
+
+        if (res.status === 401) {
+          // not signed in
+          if (!mounted) return
+          setProfile(null)
+          setLoading(false)
+          return
+        }
+
+        // check content-type so we don't crash on HTML
+        const ct = res.headers.get('Content-Type') || ''
+        if (!ct.includes('application/json')) {
+          const text = await res.text()
+          console.error('Unexpected /api/profile/me response:', text.slice(0, 1000))
+          if (!mounted) return
+          setError('Unexpected server response')
+          setLoading(false)
+          return
+        }
+
+        const data = await res.json()
+        if (!mounted) return
+        if (!res.ok) {
+          setError(data?.error || 'Failed to load profile')
+        } else {
+          setProfile(data.profile || null)
+        }
+      } catch (err) {
+        console.error('Failed to load profile', err)
+        if (mounted) setError('Network error')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    loadProfile()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  return (
+    <div className="w-62 h-screen bg-normal z-10 relative">
+      <div className="flex flex-row pl-2 py-2 overflow-hidden bg-normal-dark rounded-md mx-3.5 items-center gap-x-3">
+        <div className="h-7 w-7 bg-default-orange rounded-xs"></div>
+        <div>
+          {loading ? (
+            <div className="text-sm">Loading…</div>
+          ) : profile ? (
+            <div className="text-sm font-semibold">{profile.username || profile.display_name || 'User'}</div>
+          ) : (
+            <Link className="text-sm font-semibold" href="/login">Sign in</Link>
+          )}
         </div>
-    )
+      </div>
+
+      <div className="mt-16 text-small font-semibold flex flex-col w-full">
+        <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 pb-3.5">
+          {firstGroupLinks.map((item, i) => (
+            <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+             <Image 
+             src={item.icon}
+             alt={item.alt}
+             width={17}
+             height={17}
+             />   
+            <Link className="w-full" key={i} href={item.path}>
+              {item.name}
+            </Link>
+            </div>
+          ))}
+        </div>
+
+        <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 py-3.5">
+          {secondGroupLinks.map((item, i) => (
+              <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+              <Image 
+              src={item.icon}
+              alt={item.alt}
+              width={17}
+              height={17}
+              />   
+             <Link className="w-full" key={i} href={item.path}>
+               {item.name}
+             </Link>
+             </div>
+          ))}
+        </div>
+
+        <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 py-3.5">
+          {thirdGroupLinks.map((item, i) => (
+            <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+            <Image 
+            src={item.icon}
+            alt={item.alt}
+            width={17}
+            height={17}
+            />   
+           <Link className="w-full" key={i} href={item.path}>
+             {item.name}
+           </Link>
+           </div>
+          ))}
+        </div>
+
+        <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 py-3.5">
+          {fourthGroupLinks.map((item, i) => (
+            <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+            <Image 
+            src={item.icon}
+            alt={item.alt}
+            width={17}
+            height={17}
+            />   
+           <Link className="w-full" key={i} href={item.path}>
+             {item.name}
+           </Link>
+           </div>
+          ))}
+        </div>
+      </div>
+    
+    <div className='w-full px-3.5'>
+      <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
+        <Image
+        src={"/Settings.svg"}
+        alt='settings-icon'
+        width={17}
+        height={17}
+        />
+        <p>Settings</p>
+      </div>
+      </div>
+
+      <div className="flex flex-col mx-3.5 bg-normal-dark mt-12 rounded-md hover:cursor-pointer border border-light absolute bottom-6">
+        <div className='w-full h-22 relative'>
+            <Image 
+            src={"/discord-image.jpg"}
+            alt='discord cover image'
+            fill={true}
+            className='object-cover rounded-md'
+            />
+        <div className='w-full h-full absolute bottom-0 bg-gradient-to-t from-normal-dark'></div>
+        </div>
+            <div className='flex flex-col p-3'>
+                <p className="text-small font-semibold">Discord</p>
+                <p className="text-xs mt-2">Join our discord channel to get useful tips from other users.</p>
+            </div>
+      </div>
+    </div>
+  )
 }

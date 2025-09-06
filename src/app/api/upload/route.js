@@ -1,38 +1,43 @@
 // src/app/api/upload/route.js
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-function sanitizeFilename(name) {
-  // preserve extension
-  const ext = path.extname(name) || ".png";
-  const base = path.basename(name, ext)
-    .replace(/\s+/g, "-")            // spaces -> dash
-    .replace(/[^a-zA-Z0-9\-_]/g, "") // remove other special chars
-    .toLowerCase()
-    .slice(0, 120);
-  return `${base}-${uuidv4()}${ext}`;
-}
+import { supabaseAdmin } from "../../../../lib/supabaseServer";
 
 export async function POST(req) {
   try {
-    const body = await req.json(); // expect { filename, b64 } where b64 is base64 without data: prefix
-    const { filename = "upload.png", b64 } = body;
-    if (!b64) return NextResponse.json({ error: "Missing b64" }, { status: 400 });
+    const body = await req.json();
+    const { b64, filename, ownerId = "anon", bucket = "uploads" } = body || {};
 
-    const sanitized = sanitizeFilename(filename);
-    const outPath = path.join(UPLOAD_DIR, sanitized);
+    if (!b64 || !filename) {
+      return NextResponse.json({ error: "Missing b64 or filename" }, { status: 400 });
+    }
+
+    // create unique path: ownerId/ts-filename
+    const safeName = `${Date.now()}-${filename.replace(/\s+/g, "_")}`;
+    const objectPath = `${ownerId}/${safeName}`;
+
     const buffer = Buffer.from(b64, "base64");
-    fs.writeFileSync(outPath, buffer);
 
-    const url = `/uploads/${sanitized}`;
-    return NextResponse.json({ ok: true, url, filename: sanitized });
+    const { error: uploadErr } = await supabaseAdmin.storage.from(bucket).upload(objectPath, buffer, {
+      contentType: "image/png",
+      upsert: false,
+    });
+
+    if (uploadErr) {
+      console.error("Supabase upload error:", uploadErr);
+      return NextResponse.json({ error: uploadErr.message || String(uploadErr) }, { status: 500 });
+    }
+
+    // create signed url (1 hour)
+    const { data: urlData, error: urlErr } = await supabaseAdmin.storage.from(bucket).createSignedUrl(objectPath, 60 * 60);
+    if (urlErr) {
+      console.warn("Signed URL creation failed:", urlErr);
+    }
+
+    const signedUrl = urlData?.signedUrl || null;
+
+    return NextResponse.json({ ok: true, objectPath, signedUrl });
   } catch (err) {
-    console.error("upload error", err);
+    console.error("upload route error:", err);
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 });
   }
 }

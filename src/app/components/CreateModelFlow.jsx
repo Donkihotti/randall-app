@@ -45,6 +45,9 @@ export default function CreateModelFlow({ initialName = "" }) {
   const [subjectId, setSubjectId] = useState(null);
   const [subject, setSubject] = useState(null);
   const [polling, setPolling] = useState(false);
+  const [localPreviewImages, setLocalPreviewImages] = useState([]); // [{url, meta}]
+
+  const previewForcedRef = useRef(null);
 
   // local ref to track when the client enqueued a job (avoid flash-overrides)
   const lastEnqueueRef = useRef(null);
@@ -105,7 +108,6 @@ export default function CreateModelFlow({ initialName = "" }) {
     return null;
   }
 
-
   // notifications
   const [notif, setNotif] = useState({ visible: false, message: "", type: "info" });
   const notifTimerRef = useRef(null);
@@ -125,72 +127,110 @@ export default function CreateModelFlow({ initialName = "" }) {
   }, [initialName]);
 
   // Poll subject status (if we have an id)
-  useEffect(() => {
-    if (!subjectId) return;
-    if (polling) return;
-    setPolling(true);
-    let mounted = true;
+useEffect(() => {
+  if (!subjectId) return;
+  if (polling) return;
+  setPolling(true);
+  let mounted = true;
 
-    const doPoll = async () => {
-      try {
-        const res = await getSubjectStatus(subjectId);
-        if (res?.subject && mounted) {
-          setSubject(res.subject);
+  const doPoll = async () => {
+    try {
+      const res = await getSubjectStatus(subjectId);
+      if (res?.subject && mounted) {
+        // Debug logging: helps see what poll sees and why it maps step
+        console.log("[poll] subjectId=", subjectId,
+                    "serverStatus=", res.subject.status,
+                    "lastEnqueue=", lastEnqueueRef.current,
+                    "previewForcedUntil=", previewForcedRef.current,
+                    "currentClientStatus=", status);
 
-          // map server status into a flow step
-          const mapped = mapServerStatus(res.subject);
-          if (!mapped) {
-            // mapping returned null -> do nothing
-            return;
-          }
+        setSubject(res.subject);
 
-          // if user has locked the flow (they deliberately moved the client),
-          // allow only critical server states to override the lock.
-          if (isLocked()) {
-            const lock = userLockRef.current;
-            // allow "failed" or "ready" to override lock (these are critical)
-            if (mapped === "failed" || mapped === "ready") {
-              // clear lock and apply mapped
-              clearLock();
-              setStatus(mapped);
-              return;
-            }
-            // If mapped is same as lock step, keep it (no-op). Otherwise ignore server mapping while locked.
-            if (mapped === lock.step) {
-              // keep user-chosen flow
-              return;
-            } else {
-              // ignore mapping while locked
-              return;
-            }
-          }
-
-          // Special-case: avoid flashing from 'generating-sheet' -> 'generate-preview' right after enqueue
-          if (mapped === "generate-preview") {
-            const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
-            const hasPreview = assets.some(a => ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type));
-            const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
-            if (!hasPreview && recentlyEnqueued) {
-              setStatus("generating-sheet");
-            } else {
-              setStatus(mapped);
-            }
-            return;
-          }
-
-          // Otherwise apply mapping normally
-          setStatus(mapped);
+        // map server status into a flow step
+        const mapped = mapServerStatus(res.subject);
+        if (!mapped) {
+          // mapping returned null -> do nothing
+          console.log("[poll] mapServerStatus returned null — no action");
+          return;
         }
-      } catch (err) {
-        console.error("poll error", err);
+
+        // --- NEW: previewForcedRef check FIRST ---
+        if (previewForcedRef.current && Date.now() < previewForcedRef.current) {
+          // If the client forced a preview, keep the preview UI until lock expires
+          console.log("[poll] previewForcedRef ACTIVE - protecting generate-preview UI");
+          // If server already has preview assets persisted, let poll clear the forced ref
+          const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
+          const serverHasPreview = assets.some(a =>
+            ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type)
+          );
+          if (serverHasPreview) {
+            console.log("[poll] server HAS preview assets -> clearing previewForcedRef to resume normal mapping");
+            previewForcedRef.current = null;
+            // allow mapping to proceed below (fall-through)
+          } else {
+            // keep the client in preview step
+            if (status !== "generate-preview") {
+              console.log("[poll] forcing client status -> generate-preview");
+              setStatus("generate-preview");
+            }
+            return; // do not let poll override
+          }
+        }
+
+        // if user has locked the flow (they deliberately moved the client),
+        // allow only critical server states to override the lock.
+        if (isLocked()) {
+          const lock = userLockRef.current;
+          console.log("[poll] userLock active:", lock);
+          // allow "failed" or "ready" to override lock (these are critical)
+          if (mapped === "failed" || mapped === "ready") {
+            // clear lock and apply mapped
+            clearLock();
+            console.log("[poll] overriding userLock due to critical mapped state:", mapped);
+            setStatus(mapped);
+            return;
+          }
+          // If mapped is same as lock step, keep it (no-op). Otherwise ignore server mapping while locked.
+          if (mapped === lock.step) {
+            console.log("[poll] mapped === lock.step, keeping user lock");
+            return;
+          }
+          console.log("[poll] userLock exists and mapped != lock.step -> ignoring server mapping");
+          return;
+        }
+
+        // Special-case: avoid flashing from 'generating-sheet' -> 'generate-preview' right after enqueue
+        if (mapped === "generate-preview") {
+          const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
+          const hasPreview = assets.some(a => ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type));
+          const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
+          if (!hasPreview && recentlyEnqueued) {
+            console.log("[poll] mapped=generate-preview but no assets and recently enqueued -> keep generating-sheet");
+            setStatus("generating-sheet");
+          } else {
+            console.log("[poll] mapped=generate-preview -> setting generate-preview");
+            setStatus(mapped);
+          }
+          return;
+        }
+
+        // Otherwise apply mapping normally
+        if (mapped !== status) {
+          console.log("[poll] applying mapped status:", mapped);
+          setStatus(mapped);
+        } else {
+          // no-op
+        }
       }
-    };
+    } catch (err) {
+      console.error("poll error", err);
+    }
+  };
 
-    doPoll();
-    const t = setInterval(doPoll, 2000);
-    return () => { mounted = false; clearInterval(t); setPolling(false); };
-  }, [subjectId, status]);
-
+  doPoll();
+  const t = setInterval(doPoll, 2000);
+  return () => { mounted = false; clearInterval(t); setPolling(false); };
+}, [subjectId, status]);
 
   // helper to create subject if it's not created yet
   async function createSubjectIfNeeded(options = {}) {
@@ -203,24 +243,37 @@ export default function CreateModelFlow({ initialName = "" }) {
         // pass explicit draft flag so server can skip strict validation
         draft: !!options.draft,
       };
-
+  
       const res = await fetch("/api/subject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // ← critical: send auth cookies
         body: JSON.stringify(payload),
       });
+  
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || "create subject failed");
-      setSubjectId(j.subjectId);
-      setSubject((prev) => ({ ...(prev || {}), id: j.subjectId, ...payload }));
-      return j.subjectId;
+  
+      // server returns { ok: true, subject, job }
+      const returnedSubject = j.subject || j.data || null;
+      if (!returnedSubject || !returnedSubject.id) {
+        // defensive fallback: check for subjectId
+        const sid = j.subjectId || j.id || j.subject_id;
+        if (!sid) throw new Error("Server did not return new subject id");
+        setSubjectId(sid);
+        setSubject((prev) => ({ ...(prev || {}), id: sid, ...payload }));
+        return sid;
+      }
+  
+      setSubjectId(returnedSubject.id);
+      setSubject((prev) => ({ ...(prev || {}), id: returnedSubject.id, ...payload }));
+      return returnedSubject.id;
     } catch (err) {
       console.error("createSubjectIfNeeded failed", err);
       showNotification("Failed to create subject: " + (err.message || err), "error");
       throw err;
     }
   }
-
 
   // handle user picking "Upload references"
   function handlePickUpload() {
@@ -299,24 +352,53 @@ export default function CreateModelFlow({ initialName = "" }) {
             case "choose":
               return <ChoiceStep subject={subject} onPickUpload={handlePickUpload} onPickGenerate={handlePickGenerate} showNotification={showNotification} />;
 
-            case "generate":
-              return (
-                <GenerateStep
+              case "generate":
+                return (
+                  <GenerateStep
                   subjectId={subjectId}
                   name={subject?.name || initialName}
                   showNotification={showNotification}
-                  onQueued={({ jobId, subjectId: sid }) => {
-                    // when GenerateStep enqueues a job, update flow state -> show generating status
+                  onQueued={({ jobId, subjectId: sid, images = [], subject: returnedSubject }) => {
+                    console.log('[onQueued]', { jobId, sid, images, returnedSubject });
+                  
                     setSubjectId(sid || subjectId);
-                    // record enqueue time so poll logic / overlay can use it (avoid flashes)
+                  
+                    // If server returned subject, merge it
+                    if (returnedSubject) {
+                      setSubject(prev => ({ ...(prev||{}), ...returnedSubject }));
+                    }
+                  
                     lastEnqueueRef.current = Date.now();
-                    // clear any user lock because system generation is now underway
                     clearLock();
-                    setStatus("generating-sheet");
-                    showNotification("Generation queued — waiting for previews", "info");
+                  
+                    // Always open preview UI and protect it briefly
+                    setStatus('generate-preview');
+                    const lockDurationMs = 10000;
+                    previewForcedRef.current = Date.now() + lockDurationMs;
+                  
+                    if (Array.isArray(images) && images.length > 0) {
+                      // normalize images
+                      const normalized = images.map((img) => ({ url: img.url || img, meta: img.meta || {} }));
+                      // show immediate preview
+                      setLocalPreviewImages(normalized);
+                  
+                      // merge into local subject.assets for preview display
+                      setSubject(prev => {
+                        const existing = Array.isArray(prev?.assets) ? prev.assets.slice() : [];
+                        const previewAssets = normalized.map(img => ({
+                          type: 'preview',
+                          url: img.url,
+                          meta: img.meta || {},
+                          created_at: new Date().toISOString()
+                        }));
+                        return { ...(prev||{}), assets: [...previewAssets, ...existing] };
+                      });
+                    }
+                  
+                    showNotification(jobId ? 'Generation queued — opening preview' : 'Preview generated', 'info');
                   }}
                 />
-              );
+                );
 
             case "uploading":
             case "validating":
@@ -333,6 +415,7 @@ export default function CreateModelFlow({ initialName = "" }) {
                   subject={subject}
                   subjectId={subjectId}
                   showNotification={showNotification}
+                  initialPreview={localPreviewImages}
                   onBack={() => {
                     clearLock();
                     // go back to upload or generate depending on presence of references

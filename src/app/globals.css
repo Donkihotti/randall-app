@@ -12,6 +12,12 @@
   .textarea-default {
     @apply appearance-none outline-none resize-none border-none bg-transparent shadow-none p-2 m-0;
   }
+  .box-link {
+    @apply px-3 py-1 text-small border rounded-xs border-black w-fit;
+  }
+  .box-link-filled-white {
+    @apply px-5 py-1 text-small bg-white rounded-xs text-black w-fit;
+  }
 }
 
 /* Autofill overrides for Chrome / WebKit */
@@ -29,9 +35,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-inter: var(--font-inter);
+  --font-instrument: var(--font-instrument); 
 
   --color-button: var(--offgray);
   --color-menu: var(--menu);
@@ -44,9 +52,10 @@
   --color-orange-focus: var(--default-orange-hover);
   --color-lighter: var(--light-gray-plus);
 
-  --text-small: var(--sidemenu-text);
+  --text-header: var(--header);
   --text-header-2: var(--header-2);
   --text-medium: var(--text-normal);
+  --text-small: var(--sidemenu-text);
   --text-supersmall: var(--text-smallest);
 
   --padding-page: var(--padding-page);
@@ -69,6 +78,7 @@
     --default-orange-hover: #ff8665;
 
     --sidemenu-text: 14px; 
+    --header: 64px;
     --header-2: 40px;
     --text-normal: 24px; 
     --text-smallest: 12px; 
