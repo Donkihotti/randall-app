@@ -4,6 +4,7 @@ import { createServerSupabase } from "../../../../../../utils/supabase/server";
 import { supabaseAdmin } from "../../../../../../lib/supabaseServer";
 import Replicate from "replicate";
 import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 const GENERATED_BUCKET = process.env.SUPABASE_GENERATED_BUCKET || "generated";
 const UPLOAD_BUCKET = process.env.SUPABASE_UPLOAD_BUCKET || "uploads";
@@ -40,12 +41,16 @@ async function uploadBufferToStorage(buffer, objectPath, bucket = GENERATED_BUCK
     contentType,
     upsert: false,
   });
-  if (upErr) throw upErr;
+  if (upErr) {
+    throw upErr;
+  }
   const signed = await makeSignedUrl(bucket, objectPath);
-  // return object_path and url (signed)
-  return { object_path: objectPath, url: signed };
+  return { objectPath, url: signed };
 }
 
+/**
+ * Lightweight generic extractor for Replicate outputs (strings/arrays/objects with `.url`, `.image`, `.output`, base64)
+ */
 async function extractOutputsGeneric(out) {
   const results = [];
   if (!out && out !== 0) return results;
@@ -78,6 +83,7 @@ async function extractOutputsGeneric(out) {
   return results;
 }
 
+/** Save a single extracted item (url/data/base64) to storage bucket and return { objectPath, url } */
 async function saveExtractedItemToStorage(item, subjectId, idx) {
   if (!item) return null;
   const fname = `nb-${subjectId}-${Date.now()}-${idx}.png`;
@@ -110,16 +116,106 @@ async function saveExtractedItemToStorage(item, subjectId, idx) {
   return null;
 }
 
+/**
+ * Persist savedItems (array of { objectPath, url }) into assets table.
+ * Returns inserted rows (with id, object_path, url, ...).
+ *
+ * NOTE: This function uses service-role supabaseAdmin.
+ */
+async function saveOutputsAsAssets(savedItems, subjectId, prompt = null, parentAssetId = null, ownerId = null) {
+  if (!Array.isArray(savedItems) || savedItems.length === 0) return [];
+
+  ownerId = ownerId || null;
+  const nowIso = new Date().toISOString();
+
+  // compute next version number
+  let baseVersion = 0;
+  if (parentAssetId) {
+    try {
+      const { data: parentRow, error: parentErr } = await supabaseAdmin.from("assets").select("version").eq("id", parentAssetId).single();
+      if (!parentErr && parentRow && parentRow.version) baseVersion = Number(parentRow.version);
+    } catch (e) {
+      console.warn("saveOutputsAsAssets: failed to read parent version", e);
+    }
+  } else {
+    try {
+      const { data: maxRow, error: maxErr } = await supabaseAdmin
+        .from("assets")
+        .select("version")
+        .eq("subject_id", subjectId)
+        .order("version", { ascending: false })
+        .limit(1)
+        .single();
+      if (!maxErr && maxRow && maxRow.version) baseVersion = Number(maxRow.version);
+    } catch (e) {
+      console.warn("saveOutputsAsAssets: failed to derive base version", e);
+    }
+  }
+
+  // mark previous active assets inactive (safe two-step)
+  try {
+    const { data: currentlyActive } = await supabaseAdmin
+      .from("assets")
+      .select("id")
+      .eq("subject_id", subjectId)
+      .eq("active", true);
+    const idsToDeactivate = (currentlyActive || []).map(r => r.id);
+    if (idsToDeactivate.length > 0) {
+      const { error: deactErr } = await supabaseAdmin.from("assets").update({ active: false, updated_at: nowIso }).in("id", idsToDeactivate);
+      if (deactErr) console.warn("saveOutputsAsAssets: failed to deactivate previous assets", deactErr);
+    }
+  } catch (e) {
+    console.warn("saveOutputsAsAssets: error deactivating previous", e);
+  }
+
+  const rows = savedItems.map((s, idx) => {
+    const object_path = s.objectPath || s.object_path || s.objectpath || s.object || s.url || null;
+    const filename = path.basename(object_path || (s.url || `asset-${Date.now()}-${idx}.png`));
+    return {
+      subject_id: subjectId,
+      owner_id: ownerId,
+      type: "generated_face",
+      bucket: GENERATED_BUCKET,
+      object_path,
+      filename,
+      url: s.url || null,
+      meta: { model: REPLICATE_MODEL_NAME, prompt: prompt || null, source: s.source || null },
+      parent_id: parentAssetId || null,
+      version: baseVersion + 1 + idx,
+      active: true,
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+  });
+
+  const { data: inserted, error: insertErr } = await supabaseAdmin.from("assets").insert(rows).select();
+  if (insertErr) {
+    console.warn("saveOutputsAsAssets: insert error", insertErr);
+    throw insertErr;
+  }
+
+  // Update subject status (awaiting-approval for previewOnly, generated otherwise)
+  try {
+    await supabaseAdmin.from("subjects").update({
+      status: parentAssetId ? "awaiting-approval" : "generated",
+      updated_at: nowIso
+    }).eq("id", subjectId);
+  } catch (e) {
+    console.warn("saveOutputsAsAssets: failed to update subject status", e);
+  }
+
+  return inserted || [];
+}
+
 // ---------- route ----------
 export async function POST(req, { params }) {
   try {
     const supabase = await createServerSupabase();
 
-    // debug cookie presence
     try {
       const cookieHeader = req.headers.get("cookie");
       console.log("[generate-face] incoming Cookie header:", cookieHeader ? "[present]" : "[none]");
-    } catch (e) {}
+    } catch (e) { /** ignore */ }
 
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr) console.warn("[generate-face] auth.getUser returned error:", userErr);
@@ -130,13 +226,13 @@ export async function POST(req, { params }) {
     }
 
     const userId = user.id;
-    const { id } = (params && (typeof params.then === "function" ? await params : params)) || {};
+    const { id } = await params;
     if (!id) return NextResponse.json({ error: "Missing subject id" }, { status: 400 });
 
     // ownership check (request-bound client obeys RLS)
     const { data: subject, error: subjErr } = await supabase
       .from("subjects")
-      .select("id, owner_id, name, base_prompt, assets, status, description")
+      .select("id, owner_id, name, base_prompt, assets, status")
       .eq("id", id)
       .single();
 
@@ -154,7 +250,7 @@ export async function POST(req, { params }) {
     const image_input = Array.isArray(body?.image_input) ? body.image_input : [];
     const settings = body?.settings ?? {};
     const previewOnly = !!body?.previewOnly;
-    const parentAssetId = body?.parentAssetId || null; // optional for edit flow
+    const parentAssetId = body?.parentAssetId || null;
 
     if (typeof prompt === "string" && prompt.length > 8000) {
       return NextResponse.json({ error: "Prompt too long" }, { status: 400 });
@@ -163,14 +259,13 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Too many image inputs (max 8)" }, { status: 400 });
     }
 
-    // Attempt synchronous generation when previewOnly is requested and token present
+    // Try synchronous preview generation if requested and we have replicate token
     if (previewOnly && REPLICATE_API_TOKEN) {
       try {
         console.log("[generate-face] performing synchronous preview generation (previewOnly=true)");
-
         const replicate = new Replicate({ auth: REPLICATE_API_TOKEN });
 
-        // Build input for replicate model
+        // Build replicate input (same as worker)
         const input = {};
         if (prompt) input.prompt = prompt;
         if (Array.isArray(image_input) && image_input.length) input.image_input = image_input;
@@ -183,107 +278,50 @@ export async function POST(req, { params }) {
         const rawOutput = await replicate.run(REPLICATE_MODEL_NAME, { input });
 
         const extracted = await extractOutputsGeneric(rawOutput);
-        if (!extracted || extracted.length === 0) throw new Error("No outputs from Replicate");
+        if (!extracted || extracted.length === 0) {
+          throw new Error("No outputs from Replicate");
+        }
 
-        // Save each extracted item to storage (service role)
+        // Save outputs to generated bucket
         const saved = [];
         for (let i = 0; i < extracted.length; i++) {
           try {
             const s = await saveExtractedItemToStorage(extracted[i], id, i);
             if (s) saved.push(s);
           } catch (err) {
-            console.warn("Failed to save extracted item:", extracted[i], err);
+            console.warn("[generate-face] failed to save extracted item:", err);
           }
         }
-        if (saved.length === 0) throw new Error("Failed to save any outputs");
-
-        // Persist to assets table and mark existing active assets inactive
-        // compute base version
-        let baseVersion = 0;
-        try {
-          const { data: maxRow } = await supabaseAdmin
-            .from("assets")
-            .select("version")
-            .eq("subject_id", id)
-            .order("version", { ascending: false })
-            .limit(1)
-            .single();
-          if (maxRow && maxRow.version) baseVersion = Number(maxRow.version);
-        } catch (e) {
-          console.warn("[generate-face] unable to read max asset version:", e);
+        if (saved.length === 0) {
+          throw new Error("Failed to save any outputs");
         }
 
-        // mark previous actives inactive
-        try {
-          await supabaseAdmin.from("assets").update({ active: false }).eq("subject_id", id).eq("active", true);
-        } catch (e) {
-          console.warn("[generate-face] failed to mark previous active assets inactive:", e);
-        }
+        // Persist assets into assets table and update subject
+        const insertedAssets = await saveOutputsAsAssets(saved, id, prompt || null, parentAssetId || null, userId);
 
-        // build insert rows
-        const insertRows = saved.map((s, idx) => {
-          const object_path = s.object_path || s.objectPath || s.objectPath || null;
-          const filename = path.basename(object_path || (s.url || `gen-${Date.now()}-${idx}.png`));
-          return {
-            subject_id: id,
-            owner_id: subject.owner_id || userId,
-            type: "generated_face",
-            bucket: GENERATED_BUCKET,
-            object_path,
-            filename,
-            url: s.url || null,
-            meta: { model: REPLICATE_MODEL_NAME, prompt: prompt || null },
-            parent_id: parentAssetId || null,
-            version: baseVersion + 1 + idx,
-            active: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-        });
-
-        const { data: insertedAssets, error: insertErr } = await supabaseAdmin
-          .from("assets")
-          .insert(insertRows)
-          .select();
-
-        if (insertErr) {
-          console.warn("[generate-face] failed inserting assets rows:", insertErr);
-        } else {
-          console.log(`[generate-face] inserted ${insertedAssets.length} assets for subject ${id}`);
-        }
-
-        // Update subjects.status (service role)
-        try {
-          await supabaseAdmin.from("subjects").update({
-            status: parentAssetId ? "awaiting-approval" : "awaiting-approval",
-            updated_at: new Date().toISOString()
-          }).eq("id", id);
-        } catch (e) {
-          console.warn("[generate-face] failed to update subject status:", e);
-        }
-
-        // fetch latest assets rows to return
-        const { data: latestAssets } = await supabaseAdmin
-          .from("assets")
-          .select("*")
-          .eq("subject_id", id)
-          .order("created_at", { ascending: false });
-
-        // Build images array with signed URLs (use the url field which we created via createSignedUrl earlier)
+        // Build images array for the response
         const images = (insertedAssets || []).map(a => ({
-          id: a.id,
-          url: a.url || a.signedUrl || a.signed_url || null,
-          object_path: a.object_path || a.objectPath || null,
-        })).filter(i => !!i.url);
+          assetId: a.id,
+          objectPath: a.object_path || a.objectPath || null,
+          url: a.url || null,
+        }));
 
-        // Build a subject-like object that contains the canonical assets (so client can use it immediately)
-        const subjectWithAssets = { ...(subject || {}), assets: (latestAssets || []) };
+        // fetch fresh subject for response
+        const { data: freshSubject2, error: freshErr2 } = await supabaseAdmin
+          .from("subjects")
+          .select("*")
+          .eq("id", id)
+          .single();
 
-        console.log("[generate-face] synchronous preview generation complete, returning images and subject");
-        return NextResponse.json({ ok: true, jobId: null, images, subject: subjectWithAssets });
+        if (freshErr2) {
+          console.warn("[generate-face] could not fetch subject after persist:", freshErr2);
+        }
+
+        return NextResponse.json({ ok: true, jobId: null, images, subject: freshSubject2 || { ...subject } });
       } catch (err) {
-        // if synchronous generation fails for any reason, fallthrough to enqueue behavior
+        // If replicate blocked (safety), or any sync step failed, log and fall back to enqueueing a job (async worker)
         console.warn("[generate-face] synchronous generation failed, falling back to enqueue job:", err);
+        // fall through to enqueue below
       }
     }
 
@@ -307,7 +345,7 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Failed to enqueue job" }, { status: 500 });
     }
 
-    // fetch latest subject to return (note: assets come from assets table via status endpoint)
+    // fetch the subject row again to return to client (helps client show immediate state)
     const { data: freshSubject, error: freshErr } = await supabase
       .from("subjects")
       .select("id, owner_id, name, base_prompt, assets, status")

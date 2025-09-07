@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import ButtonOrange from '../buttons/ButtonOrange'
 
 export default function SettingsForm({ initialProfile }) {
   const router = useRouter()
@@ -57,27 +58,32 @@ export default function SettingsForm({ initialProfile }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12 }} className='text-black'>
+    <>
+    <span>Account details</span>
+    <form onSubmit={handleSubmit} className='mt-22 bg-normal px-3.5 py-3.5 rounded-xs text-white flex flex-col'>
       {error && <div style={{ color: '#b00020' }}>{error}</div>}
       {success && <div style={{ color: '#064e3b' }}>{success}</div>}
+      <div className='flex flex-col gap-y-4'>
+        <div className='flex flex-col gap-y-2'>
+          <label className='text-lighter font-semibold'>
+            Username
+          </label>
+            <input className='input-default bg-normal-dark px-2 py-1 rounded-xs w-52' value={username} onChange={(e) => setUsername(e.target.value)} />
+        </div>
 
-      <label>
-        Username
-        <input value={username} onChange={(e) => setUsername(e.target.value)} />
-      </label>
-
-      <label>
-        Display name
-        <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-      </label>
-
-      <label>
-        Bio
-        <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} />
-      </label>
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save changes'}</button>
+      <div className='flex flex-col gap-y-2'>
+        <label className='text-lighter font-semibold'>
+          Display name
+        </label>    
+            <input className='input-default bg-normal-dark px-2 py-1 rounded-xs w-52' value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+      </div>
+        <label className='text-lighter font-semibold'>
+          Bio
+        </label>  
+          <textarea className='textarea-default bg-normal-dark w-96' value={bio} onChange={(e) => setBio(e.target.value)} rows={4} />
+      </div>
+      <div className='mt-5'>
+        <ButtonOrange type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save changes'}</ButtonOrange>
         <button type="button" onClick={() => {
           setUsername(initialProfile.username || '')
           setDisplayName(initialProfile.display_name || '')
@@ -86,5 +92,6 @@ export default function SettingsForm({ initialProfile }) {
         }}>Reset</button>
       </div>
     </form>
+    </> 
   )
 }

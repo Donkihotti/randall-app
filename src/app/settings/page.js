@@ -21,9 +21,9 @@ export default async function SettingsPage() {
 
   return (
     <PageLayout style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-      <h1 className='text-header-2'>Settings</h1>
-      <p className='text-medium'>Manage your profile and account details.</p>
-
+      <h1 className='text-medium'>Settings</h1>
+      <p className='text-small'>Manage your profile and account details.</p>
+      <span className='text-small text-white'>Account Details</span>
       <SettingsForm initialProfile={profile} />
     </PageLayout>
   )

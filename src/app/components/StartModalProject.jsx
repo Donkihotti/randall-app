@@ -40,8 +40,8 @@ export default function StartModalProject ({ open, onClose }) {
             </button>
         </div>   
       <h2 className="text-medium font-semibold">Create a new project</h2>
-        <h4 className="text-small text-lighter mt-3 leading-4">Projects can be used to create multiple sets of pictures <br/>
-        for multiple different usecases. For example it can be used <br/> to create pictures of a new product collection. </h4>
+        <h4 className="text-small text-lighter mt-3 leading-4">Projects can be used to create multiple sets of pictures
+        for multiple different usecases. For example it can be used to create pictures of a new product collection. </h4>
       <div className="mt-8">
         <label className="block text-sm font-medium mb-2 text-lighter">Project name</label>
         <div className="flex flex-row gap-x-3 items-center bg-normal-dark pr-1 rounded-xs">
@@ -55,8 +55,8 @@ export default function StartModalProject ({ open, onClose }) {
         </div>
         <label className="block text-sm font-medium text-lighter mb-2 mt-5">Project description (optional)</label>
         <textarea 
-        className="textarea-default bg-normal-dark w-full rounded-xs text-small"
-        placeholder="Describe your project"
+        className="textarea-default bg-normal-dark w-full h-28 rounded-xs text-small"
+        placeholder="Describe your project "
         />
         <div className="flex flex-row justify-between w-full">
             <div className="flex flex-row gap-x-2 mt-5 h-full">

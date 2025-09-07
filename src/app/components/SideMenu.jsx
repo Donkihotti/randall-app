@@ -102,7 +102,7 @@ export default function SideMenu() {
         <p>Credits</p>
       </div>
 
-      <div className="mt-16 text-small font-semibold flex flex-col w-full">
+      <div className="mt-16 text-small text-white font-semibold flex flex-col w-full">
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 pb-3.5">
           {firstGroupLinks.map((item, i) => (
             <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>

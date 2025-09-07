@@ -183,3 +183,38 @@ export async function POST(req) {
     return NextResponse.json({ error: err.message || String(err) }, { status: 500 })
   }
 }
+
+  export async function GET(req) { 
+    const supabase = await createServerSupabase()
+    const { data: userData, error: userErr } = await supabase.auth.getUser()
+    if (userErr) {
+      console.warn('auth.getUser returned error:', userErr)
+    }
+    const user = userData?.user
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data, error } = await supabase
+      .from("subjects")
+      .select("*")
+      .eq("owner_id", user.id);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({ subjects: data }, { status: 200 });
+  }
+
+  async function getImageUrl(path) {
+    const { data, error } = await supabase.storage
+      .from("generated") // bucket name
+      .createSignedUrl(path, 60); // valid for 60 seconds
+  
+    if (error) {
+      console.error(error);
+      return "";
+    }
+  
+    return data.signedUrl;
+  }

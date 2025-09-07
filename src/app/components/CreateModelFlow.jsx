@@ -41,6 +41,7 @@ export default function CreateModelFlow({ initialName = "" }) {
   const [subject, setSubject] = useState(null);
   const [polling, setPolling] = useState(false);
   const [localPreviewImages, setLocalPreviewImages] = useState([]); // [{url, meta}]
+  const previewLockRef = useRef(null);
 
   // small refs used to protect UI transitions from poll overrides
   const previewForcedRef = useRef(null);     // timestamp until which preview is protected
@@ -100,6 +101,19 @@ export default function CreateModelFlow({ initialName = "" }) {
     return null;
   }
 
+  // helper to set/clear preview lock
+  function setPreviewLock(durationMs = 15000, jobId = null) {
+    previewLockRef.current = { until: Date.now() + durationMs, jobId };
+    console.log('[previewLock] set until=', previewLockRef.current.until, 'jobId=', jobId);
+  }
+  function clearPreviewLock() {
+    previewLockRef.current = null;
+    console.log('[previewLock] cleared');
+  }
+  function isPreviewLocked() {
+    return previewLockRef.current && previewLockRef.current.until > Date.now();
+  }
+
   // notifications
   const [notif, setNotif] = useState({ visible: false, message: "", type: "info" });
   const notifTimerRef = useRef(null);
@@ -124,97 +138,100 @@ export default function CreateModelFlow({ initialName = "" }) {
     if (polling) return;
     setPolling(true);
     let mounted = true;
-
+  
     const doPoll = async () => {
       try {
         const res = await getSubjectStatus(subjectId);
-        if (!mounted) return;
-        if (!res?.subject) return;
-
-        // Debugging log (helpful)
-        console.log("[poll] subjectId=", subjectId,
-                    "serverStatus=", res.subject.status,
-                    "lastEnqueue=", lastEnqueueRef.current,
-                    "previewForcedUntil=", previewForcedRef.current,
-                    "currentClientStatus=", statusRef.current);
-
-        // update subject state
-        setSubject(res.subject);
-
+        if (!mounted || !res?.subject) return;
+  
+        // debug
+        console.log('[poll] subjectId=', subjectId,
+          'serverStatus=', res.subject.status,
+          'lastEnqueue=', lastEnqueueRef.current,
+          'previewLockUntil=', previewLockRef.current ? previewLockRef.current.until : null,
+          'clientStatus=', statusRef.current
+        );
+  
+        setSubject(res.subject); // keep subject up-to-date
+  
         const mapped = mapServerStatus(res.subject);
-        if (!mapped) return;
-
-        // Preview forced protection: if we forced preview, keep it until expiry or until server has persisted preview assets
-        if (previewForcedRef.current && Date.now() < previewForcedRef.current) {
+        if (!mapped) {
+          console.log('[poll] map returned null');
+          return;
+        }
+  
+        // If preview lock active -> protect preview UI until lock expires or server has preview assets
+        if (isPreviewLocked()) {
           const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
           const serverHasPreview = assets.some(a =>
             ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type)
           );
+  
           if (serverHasPreview) {
-            console.log("[poll] server has preview assets, clearing previewForcedRef");
-            previewForcedRef.current = null;
-            // allow mapping to continue
+            console.log('[poll] server has persisted preview -> clearing previewLock and applying mapping');
+            clearPreviewLock();
+            // allow mapping to continue below
           } else {
-            if (statusRef.current !== "generate-preview") {
-              console.log("[poll] forced preview active -> set generate-preview");
-              setStatus("generate-preview");
+            // keep showing preview UI while lock active
+            if (statusRef.current !== 'generate-preview') {
+              console.log('[poll] previewLock active -> forcing generate-preview');
+              setStatus('generate-preview');
             }
-            return; // do not let poll override
+            return; // don't let poll stomp
           }
         }
-
-        // ignore brief regressions back to 'generate' immediately after we enqueued a job
+  
+        // If a job was very recently enqueued we avoid bouncing to preview prematurely
         if (lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 8000)) {
-          if (mapped === "generate" && (statusRef.current === "generating-sheet" || statusRef.current === "generate-preview")) {
-            console.log("[poll] ignoring mapped back to generate during recent enqueue");
+          if (mapped === 'generate' && (statusRef.current === 'generating-sheet' || statusRef.current === 'generate-preview')) {
+            console.log('[poll] ignoring mapped back to generate during recent enqueue');
             return;
           }
         }
-
-        // user-initiated lock handling
+  
+        // user lock (upscaling etc) handling as before
         if (isLocked()) {
           const lock = userLockRef.current;
-          if (mapped === "failed" || mapped === "ready") {
+          if (mapped === 'failed' || mapped === 'ready') {
             clearLock();
-            console.log("[poll] overriding userLock due to critical mapped state:", mapped);
             setStatus(mapped);
             return;
           }
           if (mapped === lock.step) return;
-          console.log("[poll] user lock active, ignoring mapping");
+          console.log('[poll] userLock active -> ignoring mapping');
           return;
         }
-
-        // avoid flash from generating->preview right after enqueue
-        if (mapped === "generate-preview") {
+  
+        // special-case to avoid quick flip from generating -> preview if assets not yet present
+        if (mapped === 'generate-preview') {
           const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
           const hasPreview = assets.some(a => ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type));
           const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
           if (!hasPreview && recentlyEnqueued) {
-            console.log("[poll] mapped=generate-preview but no assets and recently enqueued -> keep generating-sheet");
-            setStatus("generating-sheet");
+            console.log('[poll] mapped generate-preview but no assets & recently enqueued => keep generating-sheet');
+            setStatus('generating-sheet');
           } else {
-            console.log("[poll] mapped=generate-preview -> set generate-preview");
+            console.log('[poll] mapped generate-preview => set');
             setStatus(mapped);
           }
           return;
         }
-
-        // apply mapping normally if different
+  
+        // regular mapping
         if (mapped !== statusRef.current) {
-          console.log("[poll] applying mapped status:", mapped);
+          console.log('[poll] applying mapped status:', mapped);
           setStatus(mapped);
         }
       } catch (err) {
-        console.error("[poll] error:", err);
+        console.error('[poll] error', err);
       }
     };
-
-    // run and schedule
+  
     doPoll();
     const t = setInterval(doPoll, 2000);
     return () => { mounted = false; clearInterval(t); setPolling(false); };
-  }, [subjectId]); // deliberate: only recreate poll when subjectId changes
+  }, [subjectId]);
+  
 
   // helper to create subject
   async function createSubjectIfNeeded(options = {}) {
@@ -329,68 +346,75 @@ export default function CreateModelFlow({ initialName = "" }) {
             case "generate":
               return (
                 <GenerateStep
-                  subjectId={subjectId}
-                  name={subject?.name || initialName}
-                  showNotification={showNotification}
-                  onQueued={({ jobId, subjectId: sid, images = [], subject: returnedSubject, forcePreview = false }) => {
-                    console.log("[onQueued] jobId:", jobId, "sid:", sid, "images.length:", images?.length, "forcePreview:", forcePreview);
-
-                    setSubjectId(sid || subjectId);
-
-                    // If server returned a subject row, merge it in
-                    if (returnedSubject) {
-                      setSubject(prev => ({ ...(prev || {}), ...returnedSubject }));
-                    }
-
-                    clearLock();
-
-                    // If immediate images available — show them and go to preview
-                    if (Array.isArray(images) && images.length > 0) {
-                      const normalized = images.map(img => ({ url: img.url || img, meta: img.meta || {} }));
-                      setLocalPreviewImages(normalized);
-
-                      // merge preview assets locally so preview step can show them instantly
-                      setSubject(prev => {
-                        const existing = Array.isArray(prev?.assets) ? prev.assets.slice() : [];
-                        const previewAssets = normalized.map(img => ({
-                          type: 'preview', url: img.url, meta: img.meta || {}, created_at: new Date().toISOString()
-                        }));
-                        return { ...(prev || {}), assets: [...previewAssets, ...existing] };
-                      });
-
-                      // protect preview UI briefly
-                      previewForcedRef.current = Date.now() + 10000;
-                      // optionally set lastEnqueueRef so overlay logic still works
-                      lastEnqueueRef.current = Date.now();
-                      setStatus("generate-preview");
-                      showNotification("Preview generated", "info");
-                      return;
-                    }
-
-                    // Force preview requested (optimistic) — open preview screen and let poll fill images
-                    if (forcePreview) {
-                      setLocalPreviewImages([]); // start empty, poll will fill
-                      previewForcedRef.current = Date.now() + 15000;
-                      if (jobId) lastEnqueueRef.current = Date.now();
-                      setStatus("generate-preview");
-                      showNotification("Waiting for preview — opening preview screen", "info");
-                      return;
-                    }
-
-                    // No immediate images: this is an async job, show generating overlay
-                    if (jobId) {
-                      lastEnqueueRef.current = Date.now();
-                      setStatus("generating-sheet");
-                      showNotification("Generation queued — waiting for previews", "info");
-                      return;
-                    }
-
-                    // fallback: treat as started
+                subjectId={subjectId}
+                name={subject?.name || initialName}
+                showNotification={showNotification}
+                onQueued={({ jobId, subjectId: sid, images = [], subject: returnedSubject, forcePreview = false }) => {
+                  console.log('[onQueued] jobId:', jobId, 'sid:', sid, 'images.length:', (images||[]).length, 'forcePreview:', forcePreview);
+                
+                  // Ensure we always set subjectId from child
+                  setSubjectId(sid || subjectId);
+                
+                  // Merge server-sent subject if present (helps with ids & metadata)
+                  if (returnedSubject) {
+                    setSubject(prev => ({ ...(prev || {}), ...(returnedSubject || {}) }));
+                    console.log('[onQueued] merged returnedSubject (assets length):', (returnedSubject.assets||[]).length);
+                  }
+                
+                  // clear any manual user lock
+                  clearLock();
+                
+                  // ALWAYS mark an enqueue time so poll can be tolerant for a short time
+                  lastEnqueueRef.current = Date.now();
+                
+                  // If immediate images returned, show them
+                  if (Array.isArray(images) && images.length > 0) {
+                    const normalized = images.map(img => ({ url: img.url || img, meta: img.meta || {}, assetId: img.assetId || img.id || null }));
+                    setLocalPreviewImages(normalized);
+                
+                    // Merge into subject.assets locally so preview reads it if needed
+                    setSubject(prev => {
+                      const existing = Array.isArray(prev?.assets) ? prev.assets.slice() : [];
+                      const previewAssets = normalized.map(img => ({
+                        type: 'preview',
+                        url: img.url,
+                        meta: img.meta || {},
+                        created_at: new Date().toISOString()
+                      }));
+                      return { ...(prev || {}), assets: [...previewAssets, ...existing] };
+                    });
+                
+                    // Protect preview UI briefly
+                    previewForcedRef.current = Date.now() + 15000; // 15s
+                    setStatus("generate-preview");
+                    showNotification("Preview generated", "info");
+                    return;
+                  }
+                
+                  // If the GenerateStep explicitly requested we open preview (forcePreview),
+                  // open preview screen while waiting for assets to be persisted; protect poll from stomping.
+                  if (forcePreview) {
+                    setLocalPreviewImages([]); // empty initially — poll or GeneratePreviewStep will fill it
+                    previewForcedRef.current = Date.now() + 15000; // protect UI for 15s while we wait for server assets
+                    setStatus("generate-preview");
+                    showNotification("Waiting for preview — opening preview screen", "info");
+                    return;
+                  }
+                
+                  // Otherwise fall back to queued job path
+                  if (jobId) {
                     lastEnqueueRef.current = Date.now();
                     setStatus("generating-sheet");
-                    showNotification("Generation started", "info");
-                  }}
-                />
+                    showNotification("Generation queued — waiting for previews", "info");
+                    return;
+                  }
+                
+                  // conservative fallback
+                  lastEnqueueRef.current = Date.now();
+                  setStatus("generating-sheet");
+                  showNotification("Generation started", "info");
+                }}
+              />
               );
 
             case "uploading":

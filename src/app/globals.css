@@ -18,6 +18,9 @@
   .box-link-filled-white {
     @apply px-5 py-1 text-small bg-white rounded-xs text-black w-fit;
   }
+  .box-outside { 
+    @apply rounded
+  }
 }
 
 /* Autofill overrides for Chrome / WebKit */
@@ -85,6 +88,7 @@
 
     --padding-page: 35px; 
     --padding-small: 12px; 
+    --rounded-mid: 6px; 
   }
 }
 
