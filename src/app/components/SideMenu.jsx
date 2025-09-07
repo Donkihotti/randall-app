@@ -28,9 +28,9 @@ const fourthGroupLinks = [
 ]
 
 export default function SideMenu() {
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let mounted = true
@@ -87,7 +87,7 @@ export default function SideMenu() {
   return (
     <div className="w-62 h-screen bg-normal z-10 relative">
       <div className="flex flex-row pl-2 py-2 overflow-hidden bg-normal-dark rounded-md mx-3.5 items-center gap-x-3">
-        <div className="h-7 w-7 bg-default-orange rounded-xs"></div>
+        <div className="h-7 w-7 bg-default-orange rounded-xs flex items-center justify-center"><p className='text-2xl font-semibold'>#</p></div>
         <div>
           {loading ? (
             <div className="text-sm">Loading…</div>
@@ -97,6 +97,9 @@ export default function SideMenu() {
             <Link className="text-sm font-semibold" href="/login">Sign in</Link>
           )}
         </div>
+      </div>
+      <div className='flex flex-row w-full p-3.5 text-small'>
+        <p>Credits</p>
       </div>
 
       <div className="mt-16 text-small font-semibold flex flex-col w-full">
@@ -166,7 +169,7 @@ export default function SideMenu() {
       </div>
     
     <div className='w-full px-3.5'>
-      <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
+      <Link href={'/settings'} className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
         <Image
         src={"/Settings.svg"}
         alt='settings-icon'
@@ -174,7 +177,7 @@ export default function SideMenu() {
         height={17}
         />
         <p>Settings</p>
-      </div>
+      </Link>
       </div>
 
       <div className="flex flex-col mx-3.5 bg-normal-dark mt-12 rounded-md hover:cursor-pointer border border-light absolute bottom-6">

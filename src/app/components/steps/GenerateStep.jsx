@@ -11,7 +11,7 @@ import ButtonOrange from "../buttons/ButtonOrange";
  *  - name (optional)
  *  - showNotification(fn)
  *  - onQueued({ jobId, subjectId, images, subject })  // called after generation (job enqueued OR preview ready)
- *  - setStatus(optional) -- optional (prefer parent handle)
+ *  - setStatus(optional)
  */
 export default function GenerateStep({ subjectId: propSubjectId, name: propName = "", showNotification, onQueued, setStatus }) {
   const [subjectId, setSubjectId] = useState(propSubjectId || null);
@@ -20,9 +20,9 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
   const [steps, setSteps] = useState(20);
   const [guidance, setGuidance] = useState(7.5);
   const [promptStrength, setPromptStrength] = useState(0.45);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingLocal, setIsGeneratingLocal] = useState(false);
 
-  const [previewImages, setPreviewImages] = useState([]); // array of { url, meta }
+  const [previewImages, setPreviewImages] = useState([]); // array of { url }
 
   async function createDraftIfNeeded() {
     if (subjectId) return subjectId;
@@ -46,11 +46,13 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
       showNotification?.("Add a model name", "error");
       return;
     }
-    setIsGenerating(true);
+    setIsGeneratingLocal(true);
+
     try {
       const id = await createDraftIfNeeded();
       if (!id) throw new Error("Could not create subject");
 
+      // build request body
       const body = {
         previewOnly: true,
         prompt: prompt || undefined,
@@ -68,6 +70,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         credentials: "include",
       });
 
+      // defensive parse
       const contentType = res.headers.get("content-type") || "";
       let j = null;
       if (contentType.includes("application/json")) {
@@ -81,31 +84,38 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         throw new Error(j?.error || "Generation failed");
       }
 
-      // Normalize jobId and images
+      // Normalize response
       const jobId = j?.jobId ?? j?.data?.jobId ?? j?.id ?? null;
-      const rawImages = Array.isArray(j?.images) ? j.images : [];
-      const images = rawImages.map(i => (typeof i === "string" ? { url: i } : { url: i.url || i, meta: i.meta || {} })).filter(x => x.url);
+      const imagesRaw = Array.isArray(j?.images) ? j.images : (Array.isArray(j?.data?.images) ? j.data.images : []);
+      const images = imagesRaw.map(i => (typeof i === 'string' ? { url: i } : i)).filter(Boolean);
+      const returnedSubject = j?.subject ?? null;
 
-      // Update local preview UI
+      // Call parent ONCE with the canonical payload
+      onQueued?.({
+        jobId: jobId || null,
+        subjectId: id,
+        images,
+        subject: j.subject || null,
+        forcePreview: !!body?.previewOnly || true // cause GenerateStep always invoked with previewOnly true in this flow, but pass explicit
+      })
+
+      // Show immediate preview locally if images exist
       if (images.length > 0) {
-        setPreviewImages(images);
+        const mapped = images.map((i) => ({ url: i.url || i }));
+        setPreviewImages(mapped);
         showNotification?.("Preview generated", "info");
+        if (setStatus) setStatus("generate-preview");
       } else if (jobId) {
         showNotification?.("Generation queued — waiting for previews", "info");
       } else {
         showNotification?.("No preview or job returned from server", "error");
         console.warn("generate-face: unexpected response", j);
       }
-
-      // Single, normalized onQueued call
-      onQueued?.({ jobId, subjectId: id, images, subject: j?.subject || null });
-
-      // NOTE: do not call setStatus here — let parent control status to avoid races
     } catch (err) {
       console.error("GenerateStep generate error", err);
       showNotification?.("Generation failed: " + (err.message || err), "error");
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingLocal(false);
     }
   }
 
@@ -117,9 +127,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
   return (
     <div className="p-6 max-w-3xl mx-auto w-full">
       <div className="mt-6">
-        {previewImages.length === 0 ? (
-          <div className="text-gray-500"></div>
-        ) : (
+        {previewImages.length === 0 ? <div className="text-gray-500"></div> : (
           <div>
             <div className="flex gap-3 items-start">
               {previewImages.map((p, i) => (
@@ -128,9 +136,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
             </div>
 
             <div className="flex gap-3 mt-3">
-              <button onClick={handleRegenerate} className="px-4 py-2 border rounded">
-                Regenerate
-              </button>
+              <button onClick={handleRegenerate} className="px-4 py-2 border rounded">Regenerate</button>
             </div>
           </div>
         )}
@@ -139,13 +145,8 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
       <h2 className="text-lg font-semibold mb-3">Generate face reference for {name || "Unnamed model"}</h2>
 
       <form onSubmit={handleGenerate} className="space-y-4">
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          rows={4}
-          className="textarea-default w-full p-2 bg-normal rounded-md"
-          placeholder="Photorealistic female model, neutral expression..."
-        />
+        <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
+          className="textarea-default w-full p-2 bg-normal rounded-md" placeholder="Photorealistic female model, neutral expression..." />
 
         <div className="grid grid-cols-3 gap-3">
           <div>
@@ -163,8 +164,8 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         </div>
 
         <div className="flex gap-3">
-          <ButtonOrange type="submit" disabled={isGenerating}>
-            {isGenerating ? "Generating…" : "Create"}
+          <ButtonOrange type="submit" disabled={isGeneratingLocal}>
+            {isGeneratingLocal ? "Generating…" : "Create"}
           </ButtonOrange>
 
           <button type="button" onClick={() => setStatus?.("choose")} className="px-2 bg-normal rounded-xs">

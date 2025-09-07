@@ -1,5 +1,6 @@
 import SettingsForm from '../components/user/SettingsForm'
 import { requireUser } from '../../../lib/auth/requireUser'// returns user or redirects
+import PageLayout from '../components/PageLayout/PageLayout'
 
 export default async function SettingsPage() {
   const user = await requireUser('/SignInPage') // will redirect to /login if not signed-in
@@ -19,11 +20,11 @@ export default async function SettingsPage() {
   const profile = profileData ?? { id: user.id, username: '', display_name: '', bio: '' }
 
   return (
-    <main style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-      <h1>Settings</h1>
-      <p>Manage your profile and account details.</p>
+    <PageLayout style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
+      <h1 className='text-header-2'>Settings</h1>
+      <p className='text-medium'>Manage your profile and account details.</p>
 
       <SettingsForm initialProfile={profile} />
-    </main>
+    </PageLayout>
   )
 }

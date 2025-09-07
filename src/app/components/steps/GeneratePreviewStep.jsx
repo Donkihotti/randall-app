@@ -23,78 +23,62 @@ export default function GeneratePreviewStep({
   onAccept = () => {},
   onBack = () => {}
 }) {
-  // localImages: array of { url, id, meta }
-  const [localImages, setLocalImages] = useState(Array.isArray(initialPreview) ? normalizeInitial(initialPreview) : []);
+  const [localImages, setLocalImages] = useState(Array.isArray(initialPreview) ? initialPreview : []);
   const [editPrompt, setEditPrompt] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [openImage, setOpenImage] = useState(null);
-
-  // Helper: normalize initialPreview (strings or objects) into {url, id, meta}
-  function normalizeInitial(arr = []) {
-    return (arr || [])
-      .filter(Boolean)
-      .map((i, idx) => {
-        const url = typeof i === "string" ? i : i.url || i.signedUrl || null;
-        const meta = typeof i === "object" ? (i.meta || {}) : {};
-        const id = i.id || (url ? `preview-${url}` : `preview-${idx}-${Date.now()}`);
-        return { url, id, meta };
-      })
-      .filter((x) => !!x.url);
-  }
 
   // Helper: normalize assets to { url, id, meta }
   function assetsToImages(assets = []) {
     return (assets || [])
       .filter(Boolean)
       .map((a, idx) => {
-        // prefer signedUrl, then url, then objectPath-ish
         const url = a.signedUrl || a.url || a.object_url || a.objectPath || a.object_path || null;
-        const meta = a.meta || {};
-        const id = url ? `asset-${url}` : `asset-${idx}-${Date.now()}`;
-        return { url, id, meta };
+        return { url, id: (url ? url : `asset-${idx}-${Date.now()}`), meta: a.meta || a };
       })
       .filter((x) => !!x.url);
   }
 
-  // Merge helper that dedupes by url (keeps earlier items first)
-  function mergeDedup(primary = [], secondary = []) {
-    const seen = new Set();
-    const out = [];
-    for (const p of primary || []) {
-      if (!p || !p.url) continue;
-      if (!seen.has(p.url)) {
-        out.push(p);
-        seen.add(p.url);
-      }
-    }
-    for (const s of secondary || []) {
-      if (!s || !s.url) continue;
-      if (!seen.has(s.url)) {
-        out.push(s);
-        seen.add(s.url);
-      }
-    }
-    return out;
-  }
-
+  // If initialPreview exists, prefer it; else pick from subject.assets
   useEffect(() => {
-    try {
-      const init = normalizeInitial(initialPreview || []);
-      const fromSubject = assetsToImages(subject?.assets || []);
-
-      // prefer initial preview first (optimistic), then server assets; dedupe by URL
-      const merged = mergeDedup(init, fromSubject);
-
-      // If there were no initial previews, but server has assets, show server assets
-      const final = merged.length > 0 ? merged : fromSubject;
-
-      setLocalImages(final);
-    } catch (e) {
-      console.warn("GeneratePreviewStep: failed to build images from subject/initialPreview", e);
-      // fallback: leave localImages unchanged
+    if (initialPreview && Array.isArray(initialPreview) && initialPreview.length > 0) {
+      const imgs = initialPreview.map((i, idx) => ({ url: i.url || i, id: (i.id || `${i.url || idx}-${Date.now()}`), meta: i.meta || {} }));
+      setLocalImages(imgs);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // use subject.assets snapshot if present
+    const imgs = assetsToImages(subject?.assets || []);
+    setLocalImages(imgs);
   }, [subject, initialPreview]);
+
+  // If we have no images but subjectId exists, try to fetch fresh subject status once (worker might have just persisted)
+  useEffect(() => {
+    if ((localImages && localImages.length > 0) || !subjectId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        console.log("[GeneratePreviewStep] no initialPreview, fetching fresh subject status to pick up any new assets");
+        const res = await fetch(`/api/subject/${encodeURIComponent(subjectId)}/status`, {
+          method: "GET",
+          credentials: "include",
+        });
+        const j = await res.json().catch(() => null);
+        if (!res.ok) {
+          console.warn("[GeneratePreviewStep] /status fetch failed:", j);
+          return;
+        }
+        if (!mounted) return;
+        const assets = assetsToImages(j?.subject?.assets || []);
+        if (assets && assets.length > 0) {
+          setLocalImages(assets);
+        }
+      } catch (err) {
+        console.error("[GeneratePreviewStep] fetch fresh subject status error:", err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [subjectId, localImages]);
 
   // Accept: call parent (parent will change flow state)
   function handleAccept() {
@@ -113,7 +97,8 @@ export default function GeneratePreviewStep({
       return;
     }
 
-    const refUrl = localImages[0].url; // use the first image as reference
+    const refUrl = localImages[0].url; // default reference
+
     setIsWorking(true);
     showNotification("Applying edit — please wait", "info");
 
@@ -131,7 +116,6 @@ export default function GeneratePreviewStep({
       if (contentType.includes("application/json")) {
         j = await res.json().catch(() => null);
       } else {
-        // fallback: read text for debugging
         const txt = await res.text().catch(() => null);
         throw new Error("Unexpected server response: " + (txt ? txt.slice(0, 300) : "no body"));
       }
@@ -140,40 +124,35 @@ export default function GeneratePreviewStep({
         throw new Error(j?.error || "Edit generation failed");
       }
 
-      // 1) Prefer immediate images in response (j.images / j.data.images)
-      const returnedImages =
-        Array.isArray(j?.images) ? j.images :
-        Array.isArray(j?.data?.images) ? j.data.images :
-        [];
+      // Prefer immediate images in response (j.images), else fallback to subject assets
+      const returnedImages = Array.isArray(j?.images)
+        ? j.images.map((i) => (typeof i === "string" ? { url: i } : i))
+        : Array.isArray(j?.data?.images)
+        ? j.data.images.map((i) => (typeof i === "string" ? { url: i } : i))
+        : [];
 
       if (returnedImages.length > 0) {
-        const mapped = (returnedImages || []).map((s, idx) => {
-          if (typeof s === "string") return { url: s, id: `returned-${s}`, meta: {} };
-          const url = s.url || s.signedUrl || s.object_url || s.objectPath || s.object_path || null;
-          return { url, id: s.id || (url ? `returned-${url}` : `returned-${idx}-${Date.now()}`), meta: s.meta || {} };
-        }).filter(x => !!x.url);
-
-        // merge into localImages (newest first), dedupe
-        const merged = mergeDedup(mapped, localImages);
-        setLocalImages(merged);
+        const mapped = returnedImages
+          .map((s, idx) => ({ url: s.url || s, id: s.url || `returned-${idx}-${Date.now()}` }))
+          .filter((x) => !!x.url);
+        setLocalImages((prev) => [...mapped, ...(prev || [])]);
         showNotification("Edit generated — preview updated", "info");
         setEditPrompt("");
         return;
       }
 
-      // 2) Fallback: server returned a subject with assets
+      // fallback: server returned a subject with assets
       if (j?.subject?.assets && Array.isArray(j.subject.assets)) {
-        const serverAssets = assetsToImages(j.subject.assets);
-        if (serverAssets.length > 0) {
-          const merged = mergeDedup(serverAssets, localImages);
-          setLocalImages(merged);
+        const assets = assetsToImages(j.subject.assets);
+        if (assets.length > 0) {
+          setLocalImages((prev) => [...assets, ...(prev || [])]);
           showNotification("Edit generated — preview updated", "info");
           setEditPrompt("");
           return;
         }
       }
 
-      // 3) If server returned jobId (async), notify user and let poll pick up later
+      // if server returned jobId (async), just notify and parent will poll
       if (j?.jobId || j?.data?.jobId || j?.id) {
         showNotification("Edit queued for processing — waiting for preview", "info");
         return;

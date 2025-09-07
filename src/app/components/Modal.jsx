@@ -43,7 +43,7 @@ export default function Modal({ open, onClose, title, children, ariaLabel }) {
         }
       }}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" />
+      <div className="absolute inset-0 bg-black/50 " />
 
       <div ref={modalRef} className="relative z-10 max-w-2xl w-full">
         <div>

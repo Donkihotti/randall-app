@@ -104,6 +104,7 @@ async function uploadBufferToStorage(buffer, objectPath, bucket = GENERATED_BUCK
 
   const { data: urlData, error: urlErr } = await supabaseAdmin.storage.from(bucket).createSignedUrl(objectPath, 60 * 60)
   if (urlErr) {
+    // return object path even if signed url failed
     return { objectPath, object_path: objectPath, url: null }
   }
   return { objectPath, object_path: objectPath, url: (urlData && (urlData.signedUrl || urlData.signedURL)) || null }
@@ -189,6 +190,96 @@ async function saveExtractedItemToStorage(item, subjectId, idx) {
   }
 
   return null
+}
+
+/* ---------- New: saveOutputsAsAssets helper ---------- */
+
+/**
+ * savedItems: array of { objectPath, object_path, url }
+ * subjectId: uuid
+ * prompt: string
+ * parentAssetId: uuid | null
+ * ownerId: uuid
+ *
+ * Returns inserted asset rows (array)
+ */
+async function saveOutputsAsAssets(savedItems, subjectId, prompt = null, parentAssetId = null, ownerId = null) {
+  if (!Array.isArray(savedItems) || savedItems.length === 0) return []
+
+  ownerId = ownerId || null
+
+  // compute next version
+  let baseVersion = 0
+  try {
+    if (parentAssetId) {
+      const { data: parentRow, error: parentErr } = await supabaseAdmin.from('assets').select('version').eq('id', parentAssetId).single()
+      if (!parentErr && parentRow && parentRow.version) baseVersion = Number(parentRow.version)
+    } else {
+      const { data: maxRow, error: maxErr } = await supabaseAdmin
+        .from('assets')
+        .select('version')
+        .eq('subject_id', subjectId)
+        .order('version', { ascending: false })
+        .limit(1)
+        .single()
+      if (!maxErr && maxRow && maxRow.version) baseVersion = Number(maxRow.version)
+    }
+  } catch (e) {
+    console.warn('saveOutputsAsAssets: failed to compute base version', e)
+    baseVersion = baseVersion || 0
+  }
+
+  // mark previous active assets inactive
+  try {
+    await supabaseAdmin.from('assets').update({ active: false }).eq('subject_id', subjectId).eq('active', true)
+  } catch (e) {
+    console.warn('saveOutputsAsAssets: failed to mark previous active assets inactive', e)
+  }
+
+  const inserted = []
+  for (let i = 0; i < savedItems.length; i++) {
+    const s = savedItems[i]
+    const objectPath = s.object_path || s.objectPath || s.objectpath || s.object || s.url || null
+    const filename = path.basename(objectPath || (s.url || `asset-${Date.now()}-${i}.png`))
+    const newAsset = {
+      subject_id: subjectId,
+      owner_id: ownerId || null,
+      type: 'generated_face',
+      bucket: GENERATED_BUCKET,
+      object_path: objectPath,
+      filename,
+      url: s.url || null,
+      meta: { model: REPLICATE_MODEL_NAME, prompt: prompt || null, source: s.source || null },
+      parent_id: parentAssetId || null,
+      version: baseVersion + 1 + i,
+      active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    try {
+      const { data: ins, error: insErr } = await supabaseAdmin.from('assets').insert(newAsset).select().single()
+      if (insErr) {
+        console.warn('saveOutputsAsAssets: insert error', insErr)
+        continue
+      }
+      inserted.push(ins)
+    } catch (e) {
+      console.warn('saveOutputsAsAssets: unexpected insert exception', e)
+    }
+  }
+
+  // update subject.status
+  try {
+    await supabaseAdmin.from('subjects').update({
+      status: parentAssetId ? 'awaiting-approval' : 'generated',
+      updated_at: new Date().toISOString()
+    }).eq('id', subjectId)
+  } catch (e) {
+    console.warn('saveOutputsAsAssets: failed to update subject status', e)
+  }
+
+  return inserted
 }
 
 /* ---------- Job processors ---------- */
@@ -348,36 +439,52 @@ async function processGenerateFaceJob(jobRow) {
   }
   if (saved.length === 0) throw new Error('Failed to save any outputs')
 
-  const prevAssets = Array.isArray(subj.assets) ? subj.assets.slice() : []
-  const newAssets = prevAssets.concat(saved.map((s) => ({
-    type: 'generated_face',
-    url: s.url,
-    object_path: s.object_path || s.objectPath || null,
-    created_at: new Date().toISOString(),
-    meta: { model: REPLICATE_MODEL_NAME, prompt: input.prompt || null, source: s.source || null },
-  })))
-
-  const prevFaceRefs = Array.isArray(subj.face_refs) ? subj.face_refs.slice() : []
-  if (saved[0]) {
-    prevFaceRefs.unshift({
-      filename: path.basename(saved[0].object_path || saved[0].objectPath || saved[0].url || 'gen'),
-      url: saved[0].url,
-      object_path: saved[0].object_path || saved[0].objectPath || null,
-      generated: true,
-      generated_at: new Date().toISOString(),
-    })
+  // Persist into assets table (service-role) and mark older assets inactive
+  let insertedAssets = []
+  try {
+    const parentAssetId = jobRow.payload && jobRow.payload.parentAssetId ? jobRow.payload.parentAssetId : null
+    insertedAssets = await saveOutputsAsAssets(saved, subjectId, input.prompt || null, parentAssetId, subj.owner_id)
+    console.log(`[${WORKER_ID}] saved ${insertedAssets.length} asset rows for subject ${subjectId}`)
+  } catch (e) {
+    console.warn('Failed to persist outputs to assets table:', e)
   }
 
-  const { error: updErr } = await supabaseAdmin.from('subjects').update({
-    assets: newAssets,
-    face_refs: prevFaceRefs,
-    status: jobRow.payload?.previewOnly ? 'awaiting-approval' : 'generated',
-    updated_at: new Date().toISOString(),
-  }).eq('id', subjectId)
+  // update legacy subject JSON fields for backward compatibility (face_refs & assets)
+  try {
+    const prevAssets = Array.isArray(subj.assets) ? subj.assets.slice() : []
+    const addToAssets = saved.map((s) => ({
+      type: 'generated_face',
+      url: s.url,
+      object_path: s.object_path || s.objectPath || null,
+      created_at: new Date().toISOString(),
+      meta: { model: REPLICATE_MODEL_NAME, prompt: input.prompt || null, source: s.source || null },
+    }))
+    const newAssets = prevAssets.concat(addToAssets)
 
-  if (updErr) console.warn('Failed to update subject after generate-face:', updErr)
+    const prevFaceRefs = Array.isArray(subj.face_refs) ? subj.face_refs.slice() : []
+    if (saved[0]) {
+      prevFaceRefs.unshift({
+        filename: path.basename(saved[0].object_path || saved[0].objectPath || saved[0].url || 'gen'),
+        url: saved[0].url,
+        object_path: saved[0].object_path || saved[0].objectPath || null,
+        generated: true,
+        generated_at: new Date().toISOString(),
+      })
+    }
 
-  return { ok: true, saved }
+    const { error: updErr } = await supabaseAdmin.from('subjects').update({
+      assets: newAssets,
+      face_refs: prevFaceRefs,
+      status: jobRow.payload?.previewOnly ? 'awaiting-approval' : 'generated',
+      updated_at: new Date().toISOString(),
+    }).eq('id', subjectId)
+
+    if (updErr) console.warn('Failed to update subject after generate-face (legacy fields):', updErr)
+  } catch (e) {
+    console.warn('Error updating legacy subject fields after generate-face:', e)
+  }
+
+  return { ok: true, saved: insertedAssets.length ? insertedAssets : saved }
 }
 
 /* ---------- Job lifecycle helpers ---------- */

@@ -15,10 +15,8 @@ export default function Dashboard () {
     return (
         <PageLayout>
             <section className="w-full h-full flex flex-col">
-                <section className="w-full h-1/4">
-                    <span className="text-header-2 text-white font-medium">Dashboard</span>
-                </section>
-                <div className="w-22 mb-10">
+                    <span className="text-medium text-white font-medium">Dashboard</span>
+                <div className="w-22 my-10">
                     <DropDownButton text={"Create"}/>
                 </div>
                 <section className="w-full h-2/3 border border-light p-small flex flex-col items-center justify-center rounded-xs relative">

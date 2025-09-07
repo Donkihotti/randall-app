@@ -43,7 +43,7 @@ export default function StartModalProject ({ open, onClose }) {
         <h4 className="text-small text-lighter mt-3 leading-4">Projects can be used to create multiple sets of pictures <br/>
         for multiple different usecases. For example it can be used <br/> to create pictures of a new product collection. </h4>
       <div className="mt-8">
-        <label className="block text-sm font-medium mb-1 text-lighter">Project name</label>
+        <label className="block text-sm font-medium mb-2 text-lighter">Project name</label>
         <div className="flex flex-row gap-x-3 items-center bg-normal-dark pr-1 rounded-xs">
         <input 
         className="input-default px-2 py-2 m-1 w-full bg-normal-dark rounded-xs h-full text-small" 
@@ -52,22 +52,29 @@ export default function StartModalProject ({ open, onClose }) {
         value={name} 
         placeholder={`"My project"`}
         onChange={(e)=>setName(e.target.value)}/>
-        <ButtonOrange 
-        disabled={!name.trim()} 
-        type="submit">
-            Create
-        </ButtonOrange>
+        </div>
+        <label className="block text-sm font-medium text-lighter mb-2 mt-5">Project description (optional)</label>
+        <textarea 
+        className="textarea-default bg-normal-dark w-full rounded-xs text-small"
+        placeholder="Describe your project"
+        />
+        <div className="flex flex-row justify-between w-full">
+            <div className="flex flex-row gap-x-2 mt-5 h-full">
+                <Image 
+                src={'/Question.svg'}
+                width={16}
+                height={16}
+                alt="question icon"
+                />
+                <Link href={"/"} className="text-small text-lighter leading-4 hover:underline">Learn more about projects and different usecases</Link>
+            </div>
+            <ButtonOrange 
+            disabled={!name.trim()} 
+            type="submit">
+                Create
+            </ButtonOrange>
         </div>
       </div>
-      <div className="flex flex-row gap-x-2 mt-5">
-            <Image 
-            src={'/Question.svg'}
-            width={16}
-            height={16}
-            alt="question icon"
-            />
-            <Link href={"/"} className="text-small text-lighter leading-4 hover:underline">Learn more about projects and different usecases</Link>
-        </div>
     </form>
     </Modal>
   );

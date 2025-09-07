@@ -1,4 +1,3 @@
-// src/components/CreateModelFlow.jsx (or src/app/... replace existing CreateModelFlow)
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -13,6 +12,10 @@ import BottomNotification from "./BottomNotification";
 import ChoiceStep from "./steps/ChoiceStep";
 import GeneratePreviewStep from "./steps/GeneratePreviewStep";
 import { getSubjectStatus } from "../../../lib/apiClient";
+
+/*
+  CreateModelFlow - expects optional prop initialName (string)
+*/
 
 export default function CreateModelFlow({ initialName = "" }) {
   const router = useRouter();
@@ -31,34 +34,35 @@ export default function CreateModelFlow({ initialName = "" }) {
   ];
 
   const [status, setStatus] = useState("choose");
+  const statusRef = useRef(status);
+  useEffect(() => { statusRef.current = status }, [status]);
+
   const [subjectId, setSubjectId] = useState(null);
   const [subject, setSubject] = useState(null);
   const [polling, setPolling] = useState(false);
   const [localPreviewImages, setLocalPreviewImages] = useState([]); // [{url, meta}]
 
-  const previewForcedRef = useRef(null);
-  const lastEnqueueRef = useRef(null);
-  const userLockRef = useRef(null);
+  // small refs used to protect UI transitions from poll overrides
+  const previewForcedRef = useRef(null);     // timestamp until which preview is protected
+  const lastEnqueueRef = useRef(null);       // timestamp of last enqueue
+  const userLockRef = useRef(null);          // for user-initiated locks (upscaling etc)
 
   function lockTo(step, durationMs = 60000) {
     userLockRef.current = { step, until: Date.now() + durationMs };
   }
-  function clearLock() {
-    userLockRef.current = null;
-  }
-  function isLocked() {
-    return userLockRef.current && userLockRef.current.until > Date.now();
-  }
+  function clearLock() { userLockRef.current = null; }
+  function isLocked() { return userLockRef.current && userLockRef.current.until > Date.now(); }
 
+  /**
+   * mapServerStatus
+   * Maps subject.status -> local UI step.
+   *
+   * NOTE: the order matters. 'generated' must be checked BEFORE the generic
+   * `includes("generat")` check, otherwise "generated" incorrectly maps to generating-sheet.
+   */
   function mapServerStatus(subjectObj) {
     if (!subjectObj) return null;
     const s = String(subjectObj.status || "").toLowerCase();
-
-    // final images generated / ready to use -> finalize / ready  (check exact 'generated' first)
-    if (s === "generated" || s === "ready") return "ready";
-
-    // failed -> failed
-    if (s === "failed" || s === "error") return "failed";
 
     // Draft / awaiting prompt -> open generate editor
     if (s === "awaiting-generation" || s === "draft" || s === "awaiting_prompt") return "generate";
@@ -66,10 +70,17 @@ export default function CreateModelFlow({ initialName = "" }) {
     // queued / preprocessing -> validating step
     if (s === "queued" || s === "preprocess" || s === "preprocessing" || s === "queued_preprocess") return "validating";
 
-    // when worker is generating -> show generating-sheet
-    if (s.includes("generat") || s === "running" || s === "processing" || s === "generating" || s.includes("queued_generation")) return "generating-sheet";
+    // final images generated / ready to use -> finalize / ready
+    if (s === "generated" || s === "ready") return "ready";
+
+    // when a worker is actively generating -> show generating-sheet
+    // be specific (check for 'generating' or 'running' etc) — avoid matching 'generated'
+    if (s === "generating" || s === "running" || s === "processing" || s.includes("queued_generation")) return "generating-sheet";
+    // fallback: liberally match other "generation"-like states that are not "generated"
+    if (s.includes("generat") && s !== "generated") return "generating-sheet";
 
     // previews ready / awaiting approval -> generate-preview
+    // only map to preview if there are image assets present
     if (["awaiting-approval", "sheet_generated", "preview_ready"].includes(s)) {
       const assets = Array.isArray(subjectObj.assets) ? subjectObj.assets : [];
       const hasPreview = assets.some(a =>
@@ -79,11 +90,13 @@ export default function CreateModelFlow({ initialName = "" }) {
       return "generating-sheet";
     }
 
+    // failed -> failed
+    if (s === "failed" || s === "error") return "failed";
+
     // fallback: if server status already matches a flow key, use it
     if (["choose","generate","uploading","validating","generating-sheet","sheet-preview","upscaling","finalize","ready","failed"].includes(s)) {
       return s;
     }
-
     return null;
   }
 
@@ -97,6 +110,7 @@ export default function CreateModelFlow({ initialName = "" }) {
   }
   useEffect(() => () => { if (notifTimerRef.current) clearTimeout(notifTimerRef.current); }, []);
 
+  // If initialName passed (from dashboard), prefill subject and stay in choose step
   useEffect(() => {
     if (initialName) {
       setSubject(prev => ({ ...(prev || {}), name: initialName }));
@@ -104,7 +118,7 @@ export default function CreateModelFlow({ initialName = "" }) {
     }
   }, [initialName]);
 
-  // Poll subject status (if we have an id)
+  // Poll subject status (if we have an id) — stable interval that reads refs
   useEffect(() => {
     if (!subjectId) return;
     if (polling) return;
@@ -114,89 +128,95 @@ export default function CreateModelFlow({ initialName = "" }) {
     const doPoll = async () => {
       try {
         const res = await getSubjectStatus(subjectId);
-        if (res?.subject && mounted) {
-          console.log("[poll] subjectId=", subjectId,
-                      "serverStatus=", res.subject.status,
-                      "lastEnqueue=", lastEnqueueRef.current,
-                      "previewForcedUntil=", previewForcedRef.current,
-                      "currentClientStatus=", status);
+        if (!mounted) return;
+        if (!res?.subject) return;
 
-          setSubject(res.subject);
+        // Debugging log (helpful)
+        console.log("[poll] subjectId=", subjectId,
+                    "serverStatus=", res.subject.status,
+                    "lastEnqueue=", lastEnqueueRef.current,
+                    "previewForcedUntil=", previewForcedRef.current,
+                    "currentClientStatus=", statusRef.current);
 
-          const mapped = mapServerStatus(res.subject);
-          if (!mapped) {
-            console.log("[poll] mapServerStatus returned null — no action");
-            return;
-          }
+        // update subject state
+        setSubject(res.subject);
 
-          // previewForcedRef check FIRST (protect preview UI)
-          if (previewForcedRef.current && Date.now() < previewForcedRef.current) {
-            console.log("[poll] previewForcedRef ACTIVE - protecting generate-preview UI");
-            const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
-            const serverHasPreview = assets.some(a =>
-              ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type)
-            );
-            if (serverHasPreview) {
-              console.log("[poll] server HAS preview assets -> clearing previewForcedRef to resume normal mapping");
-              previewForcedRef.current = null;
-              // allow mapping to proceed
-            } else {
-              if (status !== "generate-preview") {
-                console.log("[poll] forcing client status -> generate-preview");
-                setStatus("generate-preview");
-              }
-              return;
+        const mapped = mapServerStatus(res.subject);
+        if (!mapped) return;
+
+        // Preview forced protection: if we forced preview, keep it until expiry or until server has persisted preview assets
+        if (previewForcedRef.current && Date.now() < previewForcedRef.current) {
+          const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
+          const serverHasPreview = assets.some(a =>
+            ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type)
+          );
+          if (serverHasPreview) {
+            console.log("[poll] server has preview assets, clearing previewForcedRef");
+            previewForcedRef.current = null;
+            // allow mapping to continue
+          } else {
+            if (statusRef.current !== "generate-preview") {
+              console.log("[poll] forced preview active -> set generate-preview");
+              setStatus("generate-preview");
             }
-          }
-
-          // user lock
-          if (isLocked()) {
-            const lock = userLockRef.current;
-            console.log("[poll] userLock active:", lock);
-            if (mapped === "failed" || mapped === "ready") {
-              clearLock();
-              console.log("[poll] overriding userLock due to critical mapped state:", mapped);
-              setStatus(mapped);
-              return;
-            }
-            if (mapped === lock.step) {
-              console.log("[poll] mapped === lock.step, keeping user lock");
-              return;
-            }
-            console.log("[poll] userLock exists and mapped != lock.step -> ignoring server mapping");
-            return;
-          }
-
-          // Avoid flashing from generating-sheet -> generate-preview if we just enqueued
-          if (mapped === "generate-preview") {
-            const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
-            const hasPreview = assets.some(a => ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type));
-            const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
-            if (!hasPreview && recentlyEnqueued) {
-              console.log("[poll] mapped=generate-preview but no assets and recently enqueued -> keep generating-sheet");
-              setStatus("generating-sheet");
-            } else {
-              console.log("[poll] mapped=generate-preview -> setting generate-preview");
-              setStatus(mapped);
-            }
-            return;
-          }
-
-          if (mapped !== status) {
-            console.log("[poll] applying mapped status:", mapped);
-            setStatus(mapped);
+            return; // do not let poll override
           }
         }
+
+        // ignore brief regressions back to 'generate' immediately after we enqueued a job
+        if (lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 8000)) {
+          if (mapped === "generate" && (statusRef.current === "generating-sheet" || statusRef.current === "generate-preview")) {
+            console.log("[poll] ignoring mapped back to generate during recent enqueue");
+            return;
+          }
+        }
+
+        // user-initiated lock handling
+        if (isLocked()) {
+          const lock = userLockRef.current;
+          if (mapped === "failed" || mapped === "ready") {
+            clearLock();
+            console.log("[poll] overriding userLock due to critical mapped state:", mapped);
+            setStatus(mapped);
+            return;
+          }
+          if (mapped === lock.step) return;
+          console.log("[poll] user lock active, ignoring mapping");
+          return;
+        }
+
+        // avoid flash from generating->preview right after enqueue
+        if (mapped === "generate-preview") {
+          const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
+          const hasPreview = assets.some(a => ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type));
+          const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
+          if (!hasPreview && recentlyEnqueued) {
+            console.log("[poll] mapped=generate-preview but no assets and recently enqueued -> keep generating-sheet");
+            setStatus("generating-sheet");
+          } else {
+            console.log("[poll] mapped=generate-preview -> set generate-preview");
+            setStatus(mapped);
+          }
+          return;
+        }
+
+        // apply mapping normally if different
+        if (mapped !== statusRef.current) {
+          console.log("[poll] applying mapped status:", mapped);
+          setStatus(mapped);
+        }
       } catch (err) {
-        console.error("poll error", err);
+        console.error("[poll] error:", err);
       }
     };
 
+    // run and schedule
     doPoll();
     const t = setInterval(doPoll, 2000);
     return () => { mounted = false; clearInterval(t); setPolling(false); };
-  }, [subjectId, status]);
+  }, [subjectId]); // deliberate: only recreate poll when subjectId changes
 
+  // helper to create subject
   async function createSubjectIfNeeded(options = {}) {
     if (subjectId) return subjectId;
     try {
@@ -206,17 +226,17 @@ export default function CreateModelFlow({ initialName = "" }) {
         basePrompt: subject?.basePrompt || "",
         draft: !!options.draft,
       };
-  
+
       const res = await fetch("/api/subject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
       });
-  
+
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || "create subject failed");
-  
+
       const returnedSubject = j.subject || j.data || null;
       if (!returnedSubject || !returnedSubject.id) {
         const sid = j.subjectId || j.id || j.subject_id;
@@ -225,7 +245,7 @@ export default function CreateModelFlow({ initialName = "" }) {
         setSubject((prev) => ({ ...(prev || {}), id: sid, ...payload }));
         return sid;
       }
-  
+
       setSubjectId(returnedSubject.id);
       setSubject((prev) => ({ ...(prev || {}), id: returnedSubject.id, ...payload }));
       return returnedSubject.id;
@@ -236,16 +256,18 @@ export default function CreateModelFlow({ initialName = "" }) {
     }
   }
 
+  // handle user picking "Upload references"
   function handlePickUpload() {
     clearLock();
     if (!subject?.name && !initialName) {
-      showNotification("Missing model name — return to dashboard and add a name", "error");
+      showNotification("Missing model name — please provide a name before uploading", "error");
       return;
     }
     setStatus("uploading");
     showNotification("Upload references to build a consistent model", "info");
   }
 
+  // handle user picking generate from scratch
   async function handlePickGenerate() {
     clearLock();
     try {
@@ -310,89 +332,63 @@ export default function CreateModelFlow({ initialName = "" }) {
                   subjectId={subjectId}
                   name={subject?.name || initialName}
                   showNotification={showNotification}
-                  onQueued={async ({ jobId, subjectId: sid, images = [], subject: returnedSubject }) => {
-                    console.log("[onQueued]", { jobId, sid, images, returnedSubject });
-                    const sidFinal = sid || subjectId;
-                    setSubjectId(sidFinal);
+                  onQueued={({ jobId, subjectId: sid, images = [], subject: returnedSubject, forcePreview = false }) => {
+                    console.log("[onQueued] jobId:", jobId, "sid:", sid, "images.length:", images?.length, "forcePreview:", forcePreview);
 
+                    setSubjectId(sid || subjectId);
+
+                    // If server returned a subject row, merge it in
                     if (returnedSubject) {
                       setSubject(prev => ({ ...(prev || {}), ...returnedSubject }));
                     }
 
-                    // record enqueue time
-                    lastEnqueueRef.current = Date.now();
                     clearLock();
 
-                    // If child returned immediate images, use those instantly
+                    // If immediate images available — show them and go to preview
                     if (Array.isArray(images) && images.length > 0) {
-                      const normalized = images.map((img) => ({ url: img.url || img, meta: img.meta || {} }));
+                      const normalized = images.map(img => ({ url: img.url || img, meta: img.meta || {} }));
                       setLocalPreviewImages(normalized);
+
+                      // merge preview assets locally so preview step can show them instantly
                       setSubject(prev => {
                         const existing = Array.isArray(prev?.assets) ? prev.assets.slice() : [];
                         const previewAssets = normalized.map(img => ({
-                          type: 'preview',
-                          url: img.url,
-                          meta: img.meta || {},
-                          created_at: new Date().toISOString()
+                          type: 'preview', url: img.url, meta: img.meta || {}, created_at: new Date().toISOString()
                         }));
                         return { ...(prev || {}), assets: [...previewAssets, ...existing] };
                       });
-                      // show preview immediately
-                      setStatus("generate-preview");
+
                       // protect preview UI briefly
                       previewForcedRef.current = Date.now() + 10000;
+                      // optionally set lastEnqueueRef so overlay logic still works
+                      lastEnqueueRef.current = Date.now();
+                      setStatus("generate-preview");
                       showNotification("Preview generated", "info");
                       return;
                     }
 
-                    // No immediate images: try to fetch the updated subject quickly (fast-poll)
-                    // We will poll /api/subject/:id/status directly for up to timeoutMs to pick up worker-persisted assets.
-                    const timeoutMs = 12000; // how long we'll wait for assets
-                    const intervalMs = 1000;
-                    const start = Date.now();
-                    let foundAssets = null;
-                    try {
-                      while (Date.now() - start < timeoutMs) {
-                        try {
-                          const res = await getSubjectStatus(sidFinal);
-                          if (res?.subject) {
-                            setSubject(res.subject);
-                          const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
-                            const previewAssets = assets.filter(a => a.url).map(a => ({ url: a.url, meta: a.meta || {} }));
-                            if (previewAssets.length > 0) {
-                              foundAssets = previewAssets;
-                              break;
-                          }
-                          }
-                        } catch (err) {
-                          console.warn("fast-check subject status failed:", err);
-                      }
-                        // small delay
-                        await new Promise(r => setTimeout(r, intervalMs));
-                      }
-                    } catch (e) {
-                      console.warn("fast poll loop failed", e);
-                    }
-
-                    if (foundAssets && foundAssets.length > 0) {
-                      // display preview and protect UI briefly
-                      setLocalPreviewImages(foundAssets);
+                    // Force preview requested (optimistic) — open preview screen and let poll fill images
+                    if (forcePreview) {
+                      setLocalPreviewImages([]); // start empty, poll will fill
+                      previewForcedRef.current = Date.now() + 15000;
+                      if (jobId) lastEnqueueRef.current = Date.now();
                       setStatus("generate-preview");
-                      previewForcedRef.current = Date.now() + 10000;
-                      showNotification("Preview available", "info");
+                      showNotification("Waiting for preview — opening preview screen", "info");
                       return;
                     }
 
-                    // fallback: no assets found quickly -> show generating overlay and let main poll continue
+                    // No immediate images: this is an async job, show generating overlay
                     if (jobId) {
+                      lastEnqueueRef.current = Date.now();
                       setStatus("generating-sheet");
                       showNotification("Generation queued — waiting for previews", "info");
                       return;
                     }
 
-                    // final fallback: show generating state
+                    // fallback: treat as started
+                    lastEnqueueRef.current = Date.now();
                     setStatus("generating-sheet");
-                    showNotification("Generation started — waiting for previews", "info");
+                    showNotification("Generation started", "info");
                   }}
                 />
               );
@@ -409,9 +405,10 @@ export default function CreateModelFlow({ initialName = "" }) {
                 <GeneratePreviewStep
                   subject={subject}
                   subjectId={subjectId}
-                  showNotification={showNotification}
                   initialPreview={localPreviewImages}
+                  showNotification={showNotification}
                   onBack={() => {
+                    previewForcedRef.current = null;
                     clearLock();
                     if ((subject?.faceRefs && subject.faceRefs.length) || (subject?.bodyRefs && subject.bodyRefs.length)) {
                       setStatus("uploading");
@@ -420,6 +417,7 @@ export default function CreateModelFlow({ initialName = "" }) {
                     }
                   }}
                   onAccept={() => {
+                    previewForcedRef.current = null;
                     lockTo("upscaling", 60000);
                     setStatus("upscaling");
                     showNotification("Accepted preview — moving to upscaling", "info");
