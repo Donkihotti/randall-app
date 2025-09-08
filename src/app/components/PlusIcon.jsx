@@ -1,12 +1,12 @@
 import Image from "next/image"
 
-export default function PlusIcon () { 
+export default function PlusIcon ({size=14,}) { 
     return ( 
         <Image
-        src={"/plus-icon.svg"}
+        src={"/Add_Plus.svg"}
         alt="plus icon"
-        width={14}
-        height={14}
+        width={size}
+        height={size}
         />
     )
 }

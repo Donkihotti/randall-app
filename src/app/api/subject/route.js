@@ -206,13 +206,13 @@ export async function POST(req) {
       return NextResponse.json({ subjects: data }, { status: 200 });
   }
 
-  async function getImageUrl(path) {
+  export async function getImageUrl(path) {
     const { data, error } = await supabase.storage
-      .from("generated") // bucket name
+      .from("generated")
       .createSignedUrl(path, 60); // valid for 60 seconds
   
     if (error) {
-      console.error(error);
+      console.error("Error creating signed URL:", error.message);
       return "";
     }
   

@@ -8,6 +8,7 @@ import FolderBox from "./components/FolderBox"
 import PageLayout from "../components/PageLayout/PageLayout"
 import DropDownButton from "../components/buttons/DropDownButton";
 import StartModalProject from "../components/StartModalProject";
+import UserCredits from "../components/user/UserCredits";
 
 export default function Dashboard () { 
     const [showStartModal, setShowStartModal] = useState(false);
@@ -15,6 +16,7 @@ export default function Dashboard () {
     return (
         <PageLayout>
             <section className="w-full min-h-screen flex flex-col p-4 md:p-6">
+             <UserCredits />   
             <span className="text-lg md:text-xl text-white font-medium">Dashboard</span>
 
             <div className="w-fit my-6">
@@ -23,7 +25,9 @@ export default function Dashboard () {
 
             <div className="w-full flex flex-row gap-x-3.5">
             <section className="w-fit border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
-                <div className="w-full h-8 bg-light absolute top-0 left-0 rounded-t-md"></div>
+                <div className="w-full h-8 bg-light absolute top-0 left-0 rounded-t-md flex items-center px-6">
+                
+                </div>
 
                 {/* First Row */}
                 <section className="w-full flex flex-col md:flex-row gap-8 mt-12">
@@ -64,7 +68,9 @@ export default function Dashboard () {
                 </section>
             </section>
             <section className="bg-normal w-fit h-96 rounded-md">
-                <div className="w-full"></div>
+                <div className="w-full">
+
+                </div>
             </section>
             </div>
             </section>

@@ -6,6 +6,8 @@ import FlowNavButtons from "../buttons/FlowNavButtons";
 import LoadingOverlay from "../LoadingOverlay";
 import ImageModal from "../modals/ImageModal";
 
+import pickAssetUrl from "../../../../lib/pickAsset";
+
 /**
  * Props:
  *  - subject (object) : subject JSON returned by /api/subject/:id/status (may be stale)
@@ -47,6 +49,36 @@ export default function GeneratePreviewStep({
       });
   }
 
+  // When we mount (or when subject updates) and we don't have initialPreview
+    useEffect(() => {
+      if (Array.isArray(initialPreview) && initialPreview.length > 0) {
+        // already provided by parent; prefer it
+        setLocalImages(initialPreview);
+        return;
+    }
+  
+    if (!subject || !subject.assets || subject.assets.length === 0) {
+        // nothing persisted yet
+        setLocalImages([]);
+        return;
+      }
+  
+      // Map server-side asset rows to client preview images using pickAssetUrl
+      const previewAssets = (subject.assets || [])
+      .filter((a) =>
+          ['preview', 'generated_face', 'generated_face_replicate', 'sheet_face', 'sheet_body'].includes(a.type)
+        )
+        .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
+        .map((a) => ({
+          assetId: a.id,
+          url: pickAssetUrl(a),
+          meta: a.meta || {},
+        }))
+      .filter((p) => !!p.url);
+  
+      setLocalImages(previewAssets);
+    }, [initialPreview, subject])
+
   // If initialPreview is provided, prefer it — otherwise attempt to fetch fresh assets from server
   useEffect(() => {
     mountedRef.current = true;
@@ -70,14 +102,14 @@ export default function GeneratePreviewStep({
         let attempt = 0;
         while (mountedRef.current && attempt < maxAttempts) {
           attempt++;
-          const res = await fetch(`/api/subject/${encodeURIComponent(subjectId)}/status`, { credentials: "include" });
+          const res = await fetch(`/api/subject/${encodeURIComponent(subjectId)}/assets`, { credentials: "include" });
           if (!res.ok) {
-            // break early if forbidden etc
-            console.warn("[GeneratePreviewStep] fetch status failed:", res.status);
+            console.warn("[GeneratePreviewStep] /assets fetch failed", res.status, await res.text().catch(()=>null));
           } else {
             const j = await res.json().catch(() => null);
-            if (j?.subject?.assets && Array.isArray(j.subject.assets) && j.subject.assets.length > 0) {
-              const assets = assetsToImages(j.subject.assets);
+            const rows = j?.assets || [];
+            if (rows.length > 0) {
+              const assets = assetsToImages(rows); // your helper to normalize a => {url, assetId, meta}
               if (assets.length > 0) {
                 if (mountedRef.current) {
                   setLocalImages(assets);
@@ -263,7 +295,7 @@ export default function GeneratePreviewStep({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 flex flex-row justify-end">
         <FlowNavButtons
           onBack={() => onBack()}
           onContinue={() => handleAccept()}

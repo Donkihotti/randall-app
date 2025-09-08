@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import ButtonOrange from "../buttons/ButtonOrange";
+import pickAssetUrl from "../../../../lib/pickAsset";
 
 /**
  * GenerateStep
@@ -86,9 +87,22 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
 
       // Normalize response
       const jobId = j?.jobId ?? j?.data?.jobId ?? j?.id ?? null;
-      const imagesRaw = Array.isArray(j?.images) ? j.images : (Array.isArray(j?.data?.images) ? j.data.images : []);
-      const images = imagesRaw.map(i => (typeof i === 'string' ? { url: i } : i)).filter(Boolean);
-      const returnedSubject = j?.subject ?? null;
+      const imagesRaw = Array.isArray(j?.images)
+        ? j.images
+        : Array.isArray(j?.data?.images)
+        ? j.data.images
+        : [];
+      // Build canonical images array: { assetId, url, meta }
+      const images = (imagesRaw || [])
+        .map((i) => {
+          if (!i) return null;
+          // i may be: string (url) OR object { url, objectPath, assetId, meta, id, signedUrl }
+          const url = pickAssetUrl(i) || i.url || i.objectPath || i.object_path || null;
+          const assetId = i.assetId || i.id || null;
+          const meta = i.meta || {};
+          return url ? { assetId, url, meta } : null;
+        })
+       .filter(Boolean);
 
       // Call parent ONCE with the canonical payload
       onQueued?.({
@@ -101,10 +115,10 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
 
       // Show immediate preview locally if images exist
       if (images.length > 0) {
-        const mapped = images.map((i) => ({ url: i.url || i }));
-        setPreviewImages(mapped);
-        showNotification?.("Preview generated", "info");
-        if (setStatus) setStatus("generate-preview");
+        // images are already { assetId, url, meta }
+        setPreviewImages(images.map((i) => ({ url: i.url, assetId: i.assetId, meta: i.meta })));
+        showNotification?.('Preview generated', 'info');
+        if (setStatus) setStatus('generate-preview');
       } else if (jobId) {
         showNotification?.("Generation queued — waiting for previews", "info");
       } else {
@@ -148,29 +162,13 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
           className="textarea-default w-full p-2 bg-normal rounded-md" placeholder="Photorealistic female model, neutral expression..." />
 
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs">Steps</label>
-            <input type="number" value={steps} onChange={(e) => setSteps(Number(e.target.value))} className="w-full p-1 border rounded" />
-          </div>
-          <div>
-            <label className="block text-xs">Guidance</label>
-            <input type="number" value={guidance} step="0.1" onChange={(e) => setGuidance(Number(e.target.value))} className="w-full p-1 border rounded" />
-          </div>
-          <div>
-            <label className="block text-xs">Prompt strength</label>
-            <input type="number" value={promptStrength} step="0.01" onChange={(e) => setPromptStrength(Number(e.target.value))} className="w-full p-1 border rounded" />
-          </div>
-        </div>
-
-        <div className="flex gap-3">
+        <div className="flex flex-row justify-end gap-3">
+        <button type="button" onClick={() => setStatus?.("choose")} className="px-3.5 bg-normal rounded-xs hover:cursor-pointer">
+            Back
+          </button>
           <ButtonOrange type="submit" disabled={isGeneratingLocal}>
             {isGeneratingLocal ? "Generating…" : "Create"}
           </ButtonOrange>
-
-          <button type="button" onClick={() => setStatus?.("choose")} className="px-2 bg-normal rounded-xs">
-            Back
-          </button>
         </div>
       </form>
     </div>

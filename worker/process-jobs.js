@@ -362,6 +362,187 @@ async function processPreprocessJob(jobRow) {
   return { ok: true, assetsAdded: true }
 }
 
+/* ---------- NEW: generate-sheet job handler ---------- */
+/* ---------- Add to worker/process-jobs.js ---------- */
+/**
+ * processGenerateSheetJob
+ * - jobRow.payload expected shape:
+ *   { parentAssetId?: string, angles?: string[], previewOnly?: boolean, settings?: {} }
+ *
+ * Produces sheet_face assets and updates subject.status -> 'sheet_generated'
+ */
+// Add this function to worker/process-jobs.js (near other processors)
+
+async function processGenerateSheetJob(jobRow) {
+  const subjectId = jobRow.subject_id;
+  console.log(`[${WORKER_ID}] generate-sheet job for subject ${subjectId} (job=${jobRow.id})`);
+
+  // load subject for owner info and sanity
+  const { data: subj, error: subjErr } = await supabaseAdmin.from('subjects').select('*').eq('id', subjectId).single();
+  if (subjErr || !subj) throw new Error('Subject not found for generate-sheet: ' + (subjErr?.message || subjectId));
+
+  // find parent/accepted asset id (be tolerant of payload key names)
+  const parentAssetId = jobRow.payload?.parentAssetId || jobRow.payload?.accepted_asset_id || null;
+  if (!parentAssetId) {
+    throw new Error('generate-sheet: missing parentAssetId in job payload');
+  }
+
+  // fetch parent asset row
+  let parentAsset = null;
+  try {
+    const { data: pa, error: paErr } = await supabaseAdmin.from('assets').select('*').eq('id', parentAssetId).single();
+    if (!paErr && pa) parentAsset = pa;
+  } catch (e) {
+    console.warn(`[${WORKER_ID}] could not load parent asset ${parentAssetId}:`, e);
+  }
+  if (!parentAsset) throw new Error('Parent asset not found: ' + parentAssetId);
+
+  // resolve a usable image_input for replicate: prefer asset.url, otherwise signed url from object_path, otherwise data URI
+  let sourceUrlOrDataUri = null;
+  if (parentAsset.url) {
+    sourceUrlOrDataUri = parentAsset.url;
+  } else if (parentAsset.object_path) {
+    try {
+      const { data: signedData, error: signErr } = await supabaseAdmin.storage
+        .from(parentAsset.bucket || GENERATED_BUCKET)
+        .createSignedUrl(parentAsset.object_path, 60 * 60);
+      if (!signErr && signedData?.signedUrl) {
+        sourceUrlOrDataUri = signedData.signedUrl;
+      }
+    } catch (e) {}
+  }
+  if (!sourceUrlOrDataUri) {
+    // fallback to downloading object and converting to data URI
+    try {
+      const buf = await downloadStorageToBuffer(parentAsset.object_path || parentAsset.objectPath, parentAsset.bucket || GENERATED_BUCKET);
+      const mime = extToMimeFromPath(parentAsset.filename || parentAsset.object_path || '') || 'image/png';
+      sourceUrlOrDataUri = `data:${mime};base64,${buf.toString('base64')}`;
+    } catch (e) {
+      console.warn(`[${WORKER_ID}] failed to resolve parent asset data for replicate image_input:`, e);
+      throw new Error('Failed to resolve parent asset image_input');
+    }
+  }
+
+  // Choose angles (4 angles). Allow override from payload.faceAngles.
+  const requestedAngles = Array.isArray(jobRow.payload?.faceAngles) && jobRow.payload.faceAngles.length
+    ? jobRow.payload.faceAngles
+    : ['center', 'left', 'right', '3q-left'];
+
+  // angle -> human text
+  const anglePromptMap = {
+    center: 'head facing the camera directly (0°)',
+    left: 'head turned left (45°)',
+    right: 'head turned right (45°)',
+    '3q-left': '3/4 left portrait (30° left)',
+    '3q-right': '3/4 right portrait (30° right)',
+    up: 'head tilted up slightly (15° up)',
+    down: 'head tilted down slightly (15° down)'
+  };
+
+  const savedAll = []; // will hold saved storage objects (from saveExtractedItemToStorage)
+  for (let i = 0; i < requestedAngles.length; i++) {
+    const angle = requestedAngles[i];
+    const angleText = anglePromptMap[angle] || `head pose: ${angle}`;
+    const basePrompt = jobRow.payload?.prompt || subj.base_prompt || subj.description || 'Photorealistic close-up portrait, neutral expression, studio lighting.';
+    const prompt = `${basePrompt} Close-up portrait, ${angleText}. Photorealistic, high detail, preserve identity and facial features. Neutral expression.`;
+
+    const inputForReplicate = { prompt };
+    // supply image_input as array per model expectation
+    inputForReplicate.image_input = [sourceUrlOrDataUri];
+
+    // merge settings if provided
+    if (jobRow.payload && jobRow.payload.settings && typeof jobRow.payload.settings === 'object') {
+      Object.assign(inputForReplicate, jobRow.payload.settings);
+    }
+
+    // call replicate
+    let rawOutput;
+    try {
+      console.log(`[${WORKER_ID}] replicate.run sheet angle=${angle} input keys=${Object.keys(inputForReplicate)}`);
+      rawOutput = await replicate.run(REPLICATE_MODEL_NAME, { input: inputForReplicate });
+    } catch (e) {
+      console.warn(`[${WORKER_ID}] Replicate.run error for angle ${angle}:`, e);
+      // record a warning on subject and continue
+      try {
+        const sWarn = (subj.warnings || []).slice();
+        sWarn.push(`Replicate error for angle ${angle}: ${String(e)}`);
+        await supabaseAdmin.from('subjects').update({ warnings: sWarn, updated_at: new Date().toISOString() }).eq('id', subjectId);
+      } catch (er) {}
+      continue;
+    }
+
+    // extract outputs
+    const extracted = await extractOutputsAsync(rawOutput);
+    if (!extracted || extracted.length === 0) {
+      console.warn(`[${WORKER_ID}] No outputs from Replicate for angle ${angle}`);
+      continue;
+    }
+
+    // save each extracted item to storage
+    for (let j = 0; j < extracted.length; j++) {
+      try {
+        const s = await saveExtractedItemToStorage(extracted[j], subjectId, `${i}-${j}`);
+        if (s) {
+          // attach angle meta for later asset insertion convenience
+          s._angle = angle;
+          s._prompt = prompt;
+          savedAll.push(s);
+        }
+      } catch (err) {
+        console.warn(`[${WORKER_ID}] failed to save extracted item for angle ${angle}:`, err);
+      }
+    }
+  } // end angles loop
+
+  if (savedAll.length === 0) throw new Error('No saved outputs generated for sheet');
+
+  // Persist saved outputs into assets table using existing helper
+  // Provide prompt (base prompt) and parentAssetId so versions are tracked
+  let insertedAssets = [];
+  try {
+    // saveOutputsAsAssets expects an array of saved items; pass savedAll
+    insertedAssets = await saveOutputsAsAssets(savedAll, subjectId, jobRow.payload?.prompt || subj.base_prompt || null, parentAssetId, parentAsset.owner_id || subj.owner_id);
+    console.log(`[${WORKER_ID}] generate-sheet saved ${insertedAssets.length} asset rows for subject ${subjectId}`);
+  } catch (e) {
+    console.warn(`[${WORKER_ID}] saveOutputsAsAssets failed for generate-sheet:`, e);
+  }
+
+  // Update subject: add face_refs or sheet refs and set status
+  try {
+    // Build a small face_refs array from first inserted asset if present
+    let prevFaceRefs = Array.isArray(subj.face_refs) ? subj.face_refs.slice() : [];
+    if (insertedAssets && insertedAssets.length) {
+      const a = insertedAssets[0];
+      prevFaceRefs.unshift({
+        filename: a.filename || a.object_path || a.objectPath || '',
+        url: a.url || null,
+        object_path: a.object_path || a.objectPath || null,
+        generated: true,
+        generated_at: new Date().toISOString()
+      });
+    }
+    const newStatus = jobRow.payload?.previewOnly ? 'awaiting-approval' : 'sheet_generated';
+    const { error: subjUpdErr } = await supabaseAdmin.from('subjects').update({
+      status: newStatus,
+      face_refs: prevFaceRefs,
+      updated_at: new Date().toISOString()
+    }).eq('id', subjectId);
+    if (subjUpdErr) console.warn(`[${WORKER_ID}] Failed to update subject after generate-sheet:`, subjUpdErr);
+  } catch (e) {
+    console.warn(`[${WORKER_ID}] failed updating subject after generate-sheet:`, e);
+  }
+
+  // Build result for job result
+  const resultSaved = (insertedAssets && insertedAssets.length)
+    ? insertedAssets.map(a => ({ assetId: a.id, url: a.url || null, objectPath: a.object_path || a.objectPath || null }))
+    : savedAll.map((s, idx) => ({ url: s.url || null, objectPath: s.object_path || s.objectPath || null }));
+
+  return { ok: true, saved: resultSaved, assets: insertedAssets && insertedAssets.length ? insertedAssets : null };
+}
+
+
+/* ---------- generate-face job handler ---------- */
+
 async function processGenerateFaceJob(jobRow) {
   const subjectId = jobRow.subject_id
   console.log(`[${WORKER_ID}] generate-face job for subject ${subjectId}`)
@@ -421,7 +602,9 @@ async function processGenerateFaceJob(jobRow) {
     console.log(`[${WORKER_ID}] Calling replicate model=${REPLICATE_MODEL_NAME}`)
     rawOutput = await replicate.run(REPLICATE_MODEL_NAME, { input })
   } catch (e) {
-    console.error('Replicate.run error:', e)
+    console.error(`[${WORKER_ID}] Replicate.run error:`, e)
+    // If replicate returns a known safety error, update subject.status to 'failed' or 'awaiting-approval' as appropriate.
+    // For now rethrow to let job retry/backoff handled by markJobFailed.
     throw e
   }
 
@@ -541,6 +724,8 @@ async function processJob(jobRow) {
       result = await processPreprocessJob(jobRow)
     } else if (jobRow.type === 'generate-face') {
       result = await processGenerateFaceJob(jobRow)
+    } else if (jobRow.type === 'generate-sheet') {
+      result = await processGenerateSheetJob(jobRow)
     } else {
       console.warn('Unknown job type, marking done:', jobRow.type)
       result = { ok: true, info: 'unknown job type - skipped' }

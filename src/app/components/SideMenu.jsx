@@ -98,9 +98,7 @@ export default function SideMenu() {
           )}
         </div>
       </div>
-      <div className='flex flex-row w-full p-3.5 text-small'>
-        <p>Credits</p>
-      </div>
+     
 
       <div className="mt-16 text-small text-white font-semibold flex flex-col w-full">
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 pb-3.5">

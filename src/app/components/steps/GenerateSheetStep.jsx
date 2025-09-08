@@ -3,13 +3,16 @@
 
 import { useState } from "react";
 import { enqueueModelSheet } from "../../../../lib/apiClient";
-import ModelSheetViewer from "../ModelSheetViewer";
+import SheetPreview from "./SheetPreview";
 
-export default function GenerateSheetStep({ subjectId, subject, setStatus }) {
+export default function GenerateSheetStep({ subjectId, subject, setStatus, clearLock }) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   async function generatePreview() {
     if (!subjectId) return alert("No subject");
+
+    try { if (typeof clearLock === 'function') clearLock(); } catch (e) { console.warn('clearLock failed', e); }
+
     setIsGenerating(true);
     try {
       const res = await enqueueModelSheet(subjectId, { previewOnly: true });
@@ -42,7 +45,7 @@ export default function GenerateSheetStep({ subjectId, subject, setStatus }) {
       </div>
 
       <div className="mt-6">
-        <ModelSheetViewer subjectId={subjectId} />
+        <SheetPreview subjectId={subjectId} />
       </div>
 
       <div className="mt-6">

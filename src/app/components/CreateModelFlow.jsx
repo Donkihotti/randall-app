@@ -12,6 +12,7 @@ import BottomNotification from "./BottomNotification";
 import ChoiceStep from "./steps/ChoiceStep";
 import GeneratePreviewStep from "./steps/GeneratePreviewStep";
 import { getSubjectStatus } from "../../../lib/apiClient";
+import { pickAssetUrl } from "../../../lib/pickAsset";
 
 /*
   CreateModelFlow - expects optional prop initialName (string)
@@ -42,9 +43,9 @@ export default function CreateModelFlow({ initialName = "" }) {
   const [polling, setPolling] = useState(false);
   const [localPreviewImages, setLocalPreviewImages] = useState([]); // [{url, meta}]
   const previewLockRef = useRef(null);
+  const previewForcedRef = useRef(null); // added (referenced elsewhere in the code)
 
   // small refs used to protect UI transitions from poll overrides
-  const previewForcedRef = useRef(null);     // timestamp until which preview is protected
   const lastEnqueueRef = useRef(null);       // timestamp of last enqueue
   const userLockRef = useRef(null);          // for user-initiated locks (upscaling etc)
 
@@ -53,6 +54,71 @@ export default function CreateModelFlow({ initialName = "" }) {
   }
   function clearLock() { userLockRef.current = null; }
   function isLocked() { return userLockRef.current && userLockRef.current.until > Date.now(); }
+
+  //accept from preview to sheet generation 
+
+  async function handlePreviewAccept() {
+    // pick the newest preview asset: prefer localPreviewImages (client immediate), fallback to subject.assets
+    const newest = (localPreviewImages && localPreviewImages.length > 0)
+      ? localPreviewImages[0]
+      : (Array.isArray(subject?.assets) && subject.assets.length > 0 ? subject.assets[0] : null)
+  
+    const assetId = newest?.assetId || newest?.id || null
+    if (!assetId) {
+      showNotification("No preview image selected to accept", "error")
+      return
+    }
+  
+    // Lock UI to generating-sheet and set local status immediately to avoid UI bounce
+    lockTo("generating-sheet", 60 * 1000) // protect for 60s
+    lastEnqueueRef.current = Date.now()
+    setStatus("generating-sheet")
+    showNotification("Accepting preview — generating sheet...", "info")
+  
+    try {
+      const res = await fetch(`/api/subject/${encodeURIComponent(subjectId)}/assets/${encodeURIComponent(assetId)}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ action: "accept" })
+      })
+  
+      const contentType = res.headers.get("content-type") || ""
+      let j = null
+      if (contentType.includes("application/json")) {
+        j = await res.json().catch(() => null)
+      } else {
+        const txt = await res.text().catch(() => null)
+        throw new Error("Unexpected response from accept endpoint: " + (txt || "no body"))
+      }
+  
+      if (!res.ok) {
+        // revert lock and status so user can retry
+        clearLock()
+        setStatus("generate-preview")
+        throw new Error(j?.error || "Accept failed")
+      }
+  
+      // merge updated subject (server canonical)
+      if (j?.subject) {
+        setSubject(prev => ({ ...(prev || {}), ...(j.subject || {}) }))
+      }
+  
+      // if server returns jobId it means generation is queued and we're good
+      if (j?.jobId) {
+        lastEnqueueRef.current = Date.now()
+      }
+  
+      showNotification("Preview accepted — sheet generation started", "info")
+      // keep status at generating-sheet; poll will update further when ready
+    } catch (err) {
+      console.error("handlePreviewAccept error:", err)
+      showNotification("Accept failed: " + (err?.message || err), "error")
+      // revert to preview so user can try again
+      clearLock()
+      setStatus("generate-preview")
+    }
+  }  
 
   /**
    * mapServerStatus
@@ -64,42 +130,60 @@ export default function CreateModelFlow({ initialName = "" }) {
   function mapServerStatus(subjectObj) {
     if (!subjectObj) return null;
     const s = String(subjectObj.status || "").toLowerCase();
-
+  
     // Draft / awaiting prompt -> open generate editor
     if (s === "awaiting-generation" || s === "draft" || s === "awaiting_prompt") return "generate";
-
+  
     // queued / preprocessing -> validating step
     if (s === "queued" || s === "preprocess" || s === "preprocessing" || s === "queued_preprocess") return "validating";
-
+  
     // final images generated / ready to use -> finalize / ready
     if (s === "generated" || s === "ready") return "ready";
-
+  
     // when a worker is actively generating -> show generating-sheet
-    // be specific (check for 'generating' or 'running' etc) — avoid matching 'generated'
     if (s === "generating" || s === "running" || s === "processing" || s.includes("queued_generation")) return "generating-sheet";
-    // fallback: liberally match other "generation"-like states that are not "generated"
     if (s.includes("generat") && s !== "generated") return "generating-sheet";
-
-    // previews ready / awaiting approval -> generate-preview
-    // only map to preview if there are image assets present
-    if (["awaiting-approval", "sheet_generated", "preview_ready"].includes(s)) {
+  
+    // explicit sheet_generated -> show sheet preview UI
+    if (s === "sheet_generated") return "sheet-preview";
+  
+    // awaiting-approval is ambiguous: it might be a sheet preview or a regular preview.
+    // Inspect subject.assets to decide. If there are sheet assets, map to sheet-preview.
+    if (s === "awaiting-approval") {
+      const assets = Array.isArray(subjectObj.assets) ? subjectObj.assets : [];
+      const hasSheet = assets.some(a => ["sheet_face", "sheet_body"].includes(a.type));
+      if (hasSheet) return "sheet-preview";
+  
+      // otherwise if there are any preview / generated_face assets, treat as generate-preview
+      const hasPreview = assets.some(a =>
+        ["preview", "generated_face", "generated_face_replicate", "sheet_face", "sheet_body"].includes(a.type)
+      );
+      if (hasPreview) return "generate-preview";
+  
+      // fallback: still in sheet generation flow (server thinks waiting but no assets present)
+      return "generating-sheet";
+    }
+  
+    // previews ready / awaiting approval or face previews (legacy handling)
+    if (["preview_ready"].includes(s)) {
       const assets = Array.isArray(subjectObj.assets) ? subjectObj.assets : [];
       const hasPreview = assets.some(a =>
-        ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type)
+        ["preview", "sheet_face", "sheet_body", "generated_face_replicate", "generated_face"].includes(a.type)
       );
       if (hasPreview) return "generate-preview";
       return "generating-sheet";
     }
-
+  
     // failed -> failed
     if (s === "failed" || s === "error") return "failed";
-
+  
     // fallback: if server status already matches a flow key, use it
     if (["choose","generate","uploading","validating","generating-sheet","sheet-preview","upscaling","finalize","ready","failed"].includes(s)) {
       return s;
     }
     return null;
   }
+  
 
   // helper to set/clear preview lock
   function setPreviewLock(durationMs = 15000, jobId = null) {
@@ -152,8 +236,18 @@ export default function CreateModelFlow({ initialName = "" }) {
           'clientStatus=', statusRef.current
         );
   
+        // update subject
         setSubject(res.subject); // keep subject up-to-date
-  
+
+        // --- NEW: clear enqueue timestamp if server has sheet assets persisted ---
+        const serverAssets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
+        const serverHasSheetAssets = serverAssets.some(a => ["sheet_face", "sheet_body"].includes(a.type));
+        if (serverHasSheetAssets && lastEnqueueRef.current) {
+          console.log('[poll] server has sheet assets -> clearing lastEnqueueRef so overlay can hide');
+          lastEnqueueRef.current = null;
+        }
+        // -------------------------------------------------------------------
+
         const mapped = mapServerStatus(res.subject);
         if (!mapped) {
           console.log('[poll] map returned null');
@@ -203,20 +297,27 @@ export default function CreateModelFlow({ initialName = "" }) {
         }
   
         // special-case to avoid quick flip from generating -> preview if assets not yet present
-        if (mapped === 'generate-preview') {
+        if (mapped === 'generate-preview' || mapped === 'sheet-preview') {
           const assets = Array.isArray(res.subject.assets) ? res.subject.assets : [];
           const hasPreview = assets.some(a => ["preview","sheet_face","sheet_body","generated_face_replicate","generated_face"].includes(a.type));
           const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
+        
+          // If we're currently on the generating-sheet page, do not flip to preview automatically.
+          // This prevents the UI jumping away from the sheet generation UI when a sheet job completes.
+          if (statusRef.current === 'generating-sheet') {
+            console.log('[poll] mapped=' + mapped + ' but client is on generating-sheet -> keep generating-sheet');
+            return;
+          }
+        
           if (!hasPreview && recentlyEnqueued) {
-            console.log('[poll] mapped generate-preview but no assets & recently enqueued => keep generating-sheet');
+            console.log('[poll] mapped ' + mapped + ' but no assets & recently enqueued => keep generating-sheet');
             setStatus('generating-sheet');
           } else {
-            console.log('[poll] mapped generate-preview => set');
+            console.log('[poll] mapped ' + mapped + ' => set');
             setStatus(mapped);
           }
           return;
         }
-  
         // regular mapping
         if (mapped !== statusRef.current) {
           console.log('[poll] applying mapped status:', mapped);
@@ -315,11 +416,19 @@ export default function CreateModelFlow({ initialName = "" }) {
     }
   }
 
-  const stepProps = { subjectId, subject, setStatus, showNotification };
+  const stepProps = { subjectId, subject, setStatus, showNotification, clearLock };
 
   const showGeneratingOverlay = (() => {
     const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
-    return status === "generating-sheet" || recentlyEnqueued;
+  
+    // determine if server already has sheet assets (so we can hide overlay)
+    const hasSheetAssets = Array.isArray(subject?.assets)
+      ? subject.assets.some(a => ["sheet_face", "sheet_body"].includes(a.type))
+      : false;
+  
+    // show overlay only while generating-sheet AND no sheet assets present,
+    // or when we very recently enqueued and no sheet assets yet.
+    return (!hasSheetAssets) && (status === "generating-sheet" || recentlyEnqueued);
   })();
 
   return (
@@ -332,7 +441,7 @@ export default function CreateModelFlow({ initialName = "" }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85">
           <div className="text-center text-white px-6">
             <div className="mb-4 text-lg font-medium">Generating images…</div>
-            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="w-12 h-12 border-4 border-default-orange border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         </div>
       )}
@@ -349,70 +458,96 @@ export default function CreateModelFlow({ initialName = "" }) {
                 subjectId={subjectId}
                 name={subject?.name || initialName}
                 showNotification={showNotification}
-                onQueued={({ jobId, subjectId: sid, images = [], subject: returnedSubject, forcePreview = false }) => {
-                  console.log('[onQueued] jobId:', jobId, 'sid:', sid, 'images.length:', (images||[]).length, 'forcePreview:', forcePreview);
-                
+                onQueued={({
+                  jobId,
+                  subjectId: sid,
+                  images = [],
+                  subject: returnedSubject,
+                  forcePreview = false,
+                }) => {
+                  // import pickAssetUrl at the top of this file:
+                  // import { pickAssetUrl } from '../../../lib/pickAssetUrl';
+
+                  console.log(
+                    '[onQueued] jobId:',
+                    jobId,
+                    'sid:',
+                    sid,
+                    'images.length:',
+                    (images || []).length,
+                    'forcePreview:',
+                    forcePreview
+                  );
+
                   // Ensure we always set subjectId from child
                   setSubjectId(sid || subjectId);
-                
+
                   // Merge server-sent subject if present (helps with ids & metadata)
                   if (returnedSubject) {
-                    setSubject(prev => ({ ...(prev || {}), ...(returnedSubject || {}) }));
-                    console.log('[onQueued] merged returnedSubject (assets length):', (returnedSubject.assets||[]).length);
+                    setSubject((prev) => ({ ...(prev || {}), ...(returnedSubject || {}) }));
+                    console.log(
+                      '[onQueued] merged returnedSubject (assets length):',
+                      (returnedSubject.assets || []).length
+                    );
                   }
-                
+
                   // clear any manual user lock
-                  clearLock();
-                
+                 clearLock();
+
                   // ALWAYS mark an enqueue time so poll can be tolerant for a short time
                   lastEnqueueRef.current = Date.now();
-                
-                  // If immediate images returned, show them
+
+                  // If immediate images returned, normalize them using pickAssetUrl and show preview
                   if (Array.isArray(images) && images.length > 0) {
-                    const normalized = images.map(img => ({ url: img.url || img, meta: img.meta || {}, assetId: img.assetId || img.id || null }));
+                    const normalized = images
+                      .map((img) => {
+                        const url = pickAssetUrl(img) || img.url || img.objectPath || img.object_path || null;
+                        return url ? { url, meta: img.meta || {}, assetId: img.assetId || img.id || null } : null;
+                      })
+                      .filter(Boolean);
+
                     setLocalPreviewImages(normalized);
-                
+
                     // Merge into subject.assets locally so preview reads it if needed
-                    setSubject(prev => {
+                    setSubject((prev) => {
                       const existing = Array.isArray(prev?.assets) ? prev.assets.slice() : [];
-                      const previewAssets = normalized.map(img => ({
+                      const previewAssets = normalized.map((img) => ({
                         type: 'preview',
                         url: img.url,
                         meta: img.meta || {},
-                        created_at: new Date().toISOString()
+                        created_at: new Date().toISOString(),
                       }));
                       return { ...(prev || {}), assets: [...previewAssets, ...existing] };
                     });
-                
+
                     // Protect preview UI briefly
                     previewForcedRef.current = Date.now() + 15000; // 15s
-                    setStatus("generate-preview");
-                    showNotification("Preview generated", "info");
+                    setStatus('generate-preview');
+                    showNotification('Preview generated', 'info');
                     return;
                   }
-                
-                  // If the GenerateStep explicitly requested we open preview (forcePreview),
-                  // open preview screen while waiting for assets to be persisted; protect poll from stomping.
+
+                  // Force preview screen if requested (open preview while waiting for persisted assets)
                   if (forcePreview) {
-                    setLocalPreviewImages([]); // empty initially — poll or GeneratePreviewStep will fill it
-                    previewForcedRef.current = Date.now() + 15000; // protect UI for 15s while we wait for server assets
-                    setStatus("generate-preview");
-                    showNotification("Waiting for preview — opening preview screen", "info");
+                    setLocalPreviewImages([]); // wait for poll/subject assets to fill it
+                    previewForcedRef.current = Date.now() + 15000;
+                    setStatus('generate-preview');
+                    showNotification('Waiting for preview — opening preview screen', 'info');
                     return;
                   }
-                
+
                   // Otherwise fall back to queued job path
                   if (jobId) {
                     lastEnqueueRef.current = Date.now();
-                    setStatus("generating-sheet");
-                    showNotification("Generation queued — waiting for previews", "info");
+                    setStatus('generating-sheet');
+                    showNotification('Generation queued — waiting for previews', 'info');
                     return;
                   }
-                
+
                   // conservative fallback
                   lastEnqueueRef.current = Date.now();
-                  setStatus("generating-sheet");
-                  showNotification("Generation started", "info");
+                  setStatus('generating-sheet');
+                  showNotification('Generation started', 'info');
                 }}
               />
               );
@@ -440,12 +575,7 @@ export default function CreateModelFlow({ initialName = "" }) {
                       setStatus("generate");
                     }
                   }}
-                  onAccept={() => {
-                    previewForcedRef.current = null;
-                    lockTo("upscaling", 60000);
-                    setStatus("upscaling");
-                    showNotification("Accepted preview — moving to upscaling", "info");
-                  }}
+                  onAccept={() => handlePreviewAccept()}
                 />
               );
 
