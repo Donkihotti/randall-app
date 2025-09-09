@@ -246,83 +246,117 @@ async function saveExtractedItemToStorage(item, subjectId, idx) {
  * Returns inserted asset rows (array)
  */
 async function saveOutputsAsAssets(savedItems, subjectId, prompt = null, parentAssetId = null, ownerId = null) {
-  if (!Array.isArray(savedItems) || savedItems.length === 0) return []
-
-  ownerId = ownerId || null
-
-  // compute next version
-  let baseVersion = 0
-  try {
-    if (parentAssetId) {
-      const { data: parentRow, error: parentErr } = await supabaseAdmin.from('assets').select('version').eq('id', parentAssetId).single()
-      if (!parentErr && parentRow && parentRow.version) baseVersion = Number(parentRow.version)
-    } else {
-      const { data: maxRow, error: maxErr } = await supabaseAdmin
-        .from('assets')
-        .select('version')
-        .eq('subject_id', subjectId)
-        .order('version', { ascending: false })
-        .limit(1)
-        .single()
-      if (!maxErr && maxRow && maxRow.version) baseVersion = Number(maxRow.version)
-    }
-  } catch (e) {
-    console.warn('saveOutputsAsAssets: failed to compute base version', e)
-    baseVersion = baseVersion || 0
-  }
-
-  // mark previous active assets inactive
-  try {
-    await supabaseAdmin.from('assets').update({ active: false }).eq('subject_id', subjectId).eq('active', true)
-  } catch (e) {
-    console.warn('saveOutputsAsAssets: failed to mark previous active assets inactive', e)
-  }
-
-  const inserted = []
-  for (let i = 0; i < savedItems.length; i++) {
-    const s = savedItems[i]
-    const objectPath = s.object_path || s.objectPath || s.objectpath || s.object || s.url || null
-    const filename = path.basename(objectPath || (s.url || `asset-${Date.now()}-${i}.png`))
-    const newAsset = {
-      subject_id: subjectId,
-      owner_id: ownerId || null,
-      type: 'generated_face',
-      bucket: GENERATED_BUCKET,
-      object_path: objectPath,
-      filename,
-      url: s.url || null,
-      meta: { model: REPLICATE_MODEL_NAME, prompt: prompt || null, source: s.source || null },
-      parent_id: parentAssetId || null,
-      version: baseVersion + 1 + i,
-      active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-
+    if (!Array.isArray(savedItems) || savedItems.length === 0) return []
+  
+    ownerId = ownerId || null
+  
+    // compute next version
+    let baseVersion = 0
     try {
-      const { data: ins, error: insErr } = await supabaseAdmin.from('assets').insert(newAsset).select().single()
-      if (insErr) {
-        console.warn('saveOutputsAsAssets: insert error', insErr)
-        continue
+      if (parentAssetId) {
+        const { data: parentRow, error: parentErr } = await supabaseAdmin.from('assets').select('version').eq('id', parentAssetId).single()
+        if (!parentErr && parentRow && parentRow.version) baseVersion = Number(parentRow.version)
+      } else {
+        const { data: maxRow, error: maxErr } = await supabaseAdmin
+          .from('assets')
+          .select('version')
+          .eq('subject_id', subjectId)
+          .order('version', { ascending: false })
+          .limit(1)
+          .single()
+        if (!maxErr && maxRow && maxRow.version) baseVersion = Number(maxRow.version)
       }
-      inserted.push(ins)
     } catch (e) {
-      console.warn('saveOutputsAsAssets: unexpected insert exception', e)
+      console.warn('saveOutputsAsAssets: failed to compute base version', e)
+      baseVersion = baseVersion || 0
     }
+  
+    // mark previous active assets inactive
+    try {
+      await supabaseAdmin.from('assets').update({ active: false }).eq('subject_id', subjectId).eq('active', true)
+    } catch (e) {
+      console.warn('saveOutputsAsAssets: failed to mark previous active assets inactive', e)
+    }
+  
+    const inserted = []
+    for (let i = 0; i < savedItems.length; i++) {
+      const s = savedItems[i]
+      const objectPath = s.object_path || s.objectPath || s.objectpath || s.object || s.url || null
+      const filename = path.basename(objectPath || (s.url || `asset-${Date.now()}-${i}.png`))
+  
+      // Build meta by merging incoming saved meta (if any) with canonical fields
+      const incomingMeta = (s.meta && typeof s.meta === 'object') ? { ...s.meta } : {}
+      const constructedMeta = {
+        model: REPLICATE_MODEL_NAME,
+        prompt: prompt || null,
+        source: s.source || incomingMeta.source || null,
+        // preserve any provided angle/group values if present
+        ...(incomingMeta || {}),
+      }
+      // If this saved item indicates it's part of a sheet, ensure group is 'sheet'
+      if (incomingMeta.group === 'sheet' || incomingMeta.angle) {
+        constructedMeta.group = 'sheet'
+        if (incomingMeta.angle) constructedMeta.angle = incomingMeta.angle
+      }
+  
+      const newAsset = {
+        subject_id: subjectId,
+        owner_id: ownerId || null,
+        type: s.type || 'generated_face',
+        bucket: GENERATED_BUCKET,
+        object_path: objectPath,
+        filename,
+        url: s.url || null,
+        meta: constructedMeta,
+        parent_id: parentAssetId || null,
+        version: baseVersion + 1 + i,
+        active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+  
+      try {
+        const { data: ins, error: insErr } = await supabaseAdmin.from('assets').insert(newAsset).select().single()
+        if (insErr) {
+          console.warn('saveOutputsAsAssets: insert error', insErr)
+          continue
+        }
+        inserted.push(ins)
+      } catch (e) {
+        console.warn('saveOutputsAsAssets: unexpected insert exception', e)
+      }
+    }
+  
+    // If any of the inserted assets are sheet assets, update subjects.sheet_asset_ids to point to them
+    try {
+      const sheetIds = inserted.filter(a => a && a.meta && a.meta.group === 'sheet').map(a => a.id)
+      if (sheetIds.length > 0) {
+        // atomically set subject.sheet_asset_ids to the new sheet ids (replace previous)
+        const { error: subjErr } = await supabaseAdmin.from('subjects').update({
+          sheet_asset_ids: sheetIds,
+          status: parentAssetId ? 'awaiting-approval' : 'sheet_generated',
+          updated_at: new Date().toISOString()
+        }).eq('id', subjectId)
+        if (subjErr) {
+          console.warn('saveOutputsAsAssets: failed to update subjects.sheet_asset_ids', subjErr)
+        }
+      } else {
+        // update subject.status for non-sheet assets (best-effort)
+        try {
+          await supabaseAdmin.from('subjects').update({
+            status: parentAssetId ? 'awaiting-approval' : 'generated',
+            updated_at: new Date().toISOString()
+          }).eq('id', subjectId)
+        } catch (e) {
+          console.warn('saveOutputsAsAssets: failed to update subject status', e)
+        }
+      }
+    } catch (e) {
+      console.warn('saveOutputsAsAssets: post-insert subject update failed', e)
+    }
+  
+    return inserted
   }
-
-  // update subject.status
-  try {
-    await supabaseAdmin.from('subjects').update({
-      status: parentAssetId ? 'awaiting-approval' : 'generated',
-      updated_at: new Date().toISOString()
-    }).eq('id', subjectId)
-  } catch (e) {
-    console.warn('saveOutputsAsAssets: failed to update subject status', e)
-  }
-
-  return inserted
-}
 
 /* ---------- Job processors ---------- */
 
@@ -537,29 +571,49 @@ async function processGenerateSheetJob(jobRow) {
 
   if (savedAll.length === 0) throw new Error('No saved outputs generated for sheet');
 
-  // Persist saved outputs into assets table using existing helper
-  // Provide prompt (base prompt) and parentAssetId so versions are tracked
+  // Persist into assets table (service-role) and mark older assets inactive
   let insertedAssets = [];
   try {
-    // saveOutputsAsAssets expects an array of saved items; pass savedAll
-    insertedAssets = await saveOutputsAsAssets(savedAll, subjectId, jobRow.payload?.prompt || subj.base_prompt || null, parentAssetId, parentAsset.owner_id || subj.owner_id);
-    console.log(`[${WORKER_ID}] generate-sheet saved ${insertedAssets.length} asset rows for subject ${subjectId}`);
+    const parentAssetId = jobRow.payload && jobRow.payload.parentAssetId ? jobRow.payload.parentAssetId : null;
+
+    // Normalize saved items into the shape saveOutputsAsAssets expects and ensure meta includes group/angle/prompt
+    const itemsToPersist = savedAll.map((s) => {
+      const meta = (s.meta && typeof s.meta === 'object') ? { ...s.meta } : {};
+      if (!meta.group) meta.group = 'sheet';
+      if (!meta.angle && s._angle) meta.angle = s._angle;
+      if (!meta.prompt && s._prompt) meta.prompt = s._prompt;
+      return {
+        object_path: s.object_path || s.objectPath || s.objectPath || null,
+        objectPath: s.object_path || s.objectPath || s.objectPath || null,
+        url: s.url || null,
+        source: s.source || null,
+        meta,
+        type: 'sheet_face',
+      };
+    });
+
+    insertedAssets = await saveOutputsAsAssets(itemsToPersist, subjectId, null, parentAssetId, subj.owner_id);
+    console.log(`[${WORKER_ID}] saved ${insertedAssets.length} asset rows for subject ${subjectId}`);
   } catch (e) {
-    console.warn(`[${WORKER_ID}] saveOutputsAsAssets failed for generate-sheet:`, e);
+    console.warn('Failed to persist outputs to assets table:', e);
   }
 
   try {
-      const sheetIds = insertedAssets && insertedAssets.length ? insertedAssets.map(a => a.id).filter(Boolean) : []
+      const sheetIds = insertedAssets && insertedAssets.length ? insertedAssets.map(a => a.id).filter(Boolean) : [];
       if (sheetIds.length > 0) {
-        const desiredStatus = jobRow.payload?.previewOnly ? 'awaiting-approval' : 'sheet_generated'
-        const ok = await updateSubjectAssetIds(subjectId, sheetIds, 'sheet_asset_ids', desiredStatus)
-        if (!ok) console.warn(`[${WORKER_ID}] updateSubjectAssetIds(sheet) returned false for subject ${subjectId}`)
-        else console.log(`[${WORKER_ID}] updated subjects.sheet_asset_ids for ${subjectId} ->`, sheetIds)
+        const desiredStatus = jobRow.payload?.previewOnly ? 'awaiting-approval' : 'sheet_generated';
+        // update canonical pointer (best-effort)
+        const ok = await updateSubjectAssetIds(subjectId, sheetIds, 'sheet_asset_ids', desiredStatus);
+        if (!ok) {
+          console.warn(`[${WORKER_ID}] updateSubjectAssetIds(sheet) returned false for subject ${subjectId}`);
+        } else {
+          console.log(`[${WORKER_ID}] updated subjects.sheet_asset_ids for ${subjectId} ->`, sheetIds);
+        }
       } else {
-        console.warn(`[${WORKER_ID}] generate-sheet: no sheet asset ids to update for subject ${subjectId}`)
+        console.warn(`[${WORKER_ID}] generate-sheet: no sheet asset ids to update for subject ${subjectId}`);
       }
     } catch (e) {
-      console.warn('Failed to update subjects.sheet_asset_ids after generate-sheet:', e)
+      console.warn('Failed to update subjects.sheet_asset_ids after generate-sheet:', e);
     }
 
   // Update subject: add face_refs or sheet refs and set status
