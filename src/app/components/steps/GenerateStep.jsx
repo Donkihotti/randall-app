@@ -122,6 +122,35 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
       } else if (jobId) {
         showNotification?.("Generation queued — waiting for previews", "info");
       } else {
+       // No inline images returned. Try to reconcile against persisted assets (server may have persisted images).
+        // If the server returned a subject row we can ask the canonical assets endpoint for 'latest' assets.
+        if (returnedSubject && returnedSubject.id) {
+          try {
+            const assetsRes = await fetch(`/api/subject/${encodeURIComponent(returnedSubject.id)}/assets?group=latest`, { credentials: "include" });
+            const assetsJson = assetsRes.headers.get("content-type")?.includes("application/json") ? await assetsRes.json().catch(()=>null) : null;
+            const persisted = Array.isArray(assetsJson?.assets) ? assetsJson.assets : [];
+            if (persisted.length > 0) {
+              const mapped = persisted.map(a => ({ url: a.signedUrl || a.url, assetId: a.id, meta: a.meta || {} })).filter(p => !!p.url);
+              if (mapped.length > 0) {
+                // call parent and show immediate preview locally
+                onQueued?.({
+                  jobId: jobId || null,
+                  subjectId: id,
+                  images: mapped,
+                  subject: returnedSubject || null,
+                  forcePreview: !!body?.previewOnly || true
+                });
+                setPreviewImages(mapped.map(m=>({ url: m.url })));
+                showNotification?.("Preview (from persisted assets) generated", "info");
+                if (setStatus) setStatus("generate-preview");
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn("generate-face: failed to fetch persisted assets", e);
+          }
+        }
+
         showNotification?.("No preview or job returned from server", "error");
         console.warn("generate-face: unexpected response", j);
       }

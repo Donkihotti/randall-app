@@ -192,6 +192,48 @@ async function saveExtractedItemToStorage(item, subjectId, idx) {
   return null
 }
 
+    /* ---------- Helper: update subject pointer for assets ---------- */
+    
+    /**
+     * Update subjects.<fieldName> JSONB with an array of asset IDs and optionally set status.
+     * fieldName should be 'sheet_asset_ids' or 'latest_asset_ids' etc.
+     *
+     * Returns true if update succeeded, false otherwise.
+     */
+    async function updateSubjectAssetIds(subjectId, assetIds = [], fieldName = 'sheet_asset_ids', newStatus = null) {
+      if (!subjectId) return false;
+      if (!Array.isArray(assetIds)) assetIds = [];
+    
+      const client = await pgPool.connect();
+      try {
+        if (newStatus) {
+          const sql = `
+            UPDATE public.subjects
+            SET ${fieldName} = $1::jsonb,
+                status = $2,
+                updated_at = now()
+            WHERE id = $3
+          `;
+          await client.query(sql, [JSON.stringify(assetIds), newStatus, subjectId]);
+        } else {
+          const sql = `
+            UPDATE public.subjects
+            SET ${fieldName} = $1::jsonb,
+                updated_at = now()
+            WHERE id = $2
+          `;
+          await client.query(sql, [JSON.stringify(assetIds), subjectId]);
+        }
+        return true;
+      } catch (e) {
+        console.warn('updateSubjectAssetIds failed:', e);
+        return false;
+      } finally {
+        client.release();
+      }
+    }
+    
+
 /* ---------- New: saveOutputsAsAssets helper ---------- */
 
 /**
@@ -363,7 +405,6 @@ async function processPreprocessJob(jobRow) {
 }
 
 /* ---------- NEW: generate-sheet job handler ---------- */
-/* ---------- Add to worker/process-jobs.js ---------- */
 /**
  * processGenerateSheetJob
  * - jobRow.payload expected shape:
@@ -507,6 +548,20 @@ async function processGenerateSheetJob(jobRow) {
     console.warn(`[${WORKER_ID}] saveOutputsAsAssets failed for generate-sheet:`, e);
   }
 
+  try {
+      const sheetIds = insertedAssets && insertedAssets.length ? insertedAssets.map(a => a.id).filter(Boolean) : []
+      if (sheetIds.length > 0) {
+        const desiredStatus = jobRow.payload?.previewOnly ? 'awaiting-approval' : 'sheet_generated'
+        const ok = await updateSubjectAssetIds(subjectId, sheetIds, 'sheet_asset_ids', desiredStatus)
+        if (!ok) console.warn(`[${WORKER_ID}] updateSubjectAssetIds(sheet) returned false for subject ${subjectId}`)
+        else console.log(`[${WORKER_ID}] updated subjects.sheet_asset_ids for ${subjectId} ->`, sheetIds)
+      } else {
+        console.warn(`[${WORKER_ID}] generate-sheet: no sheet asset ids to update for subject ${subjectId}`)
+      }
+    } catch (e) {
+      console.warn('Failed to update subjects.sheet_asset_ids after generate-sheet:', e)
+    }
+
   // Update subject: add face_refs or sheet refs and set status
   try {
     // Build a small face_refs array from first inserted asset if present
@@ -631,6 +686,19 @@ async function processGenerateFaceJob(jobRow) {
   } catch (e) {
     console.warn('Failed to persist outputs to assets table:', e)
   }
+
+   // --- NEW: update subject.latest_asset_ids canonical pointer (best-effort)
+  try {
+      if (insertedAssets && insertedAssets.length > 0) {
+        const ids = insertedAssets.map(a => a.id).filter(Boolean)
+        const desiredStatus = jobRow.payload?.previewOnly ? 'awaiting-approval' : 'generated'
+        const ok = await updateSubjectAssetIds(subjectId, ids, 'latest_asset_ids', desiredStatus)
+        if (!ok) console.warn(`[${WORKER_ID}] updateSubjectAssetIds(latest) returned false for subject ${subjectId}`)
+        else console.log(`[${WORKER_ID}] updated subjects.latest_asset_ids for ${subjectId}`)
+      }
+    } catch (e) {
+      console.warn('Failed to update subjects.latest_asset_ids:', e)
+    }
 
   // update legacy subject JSON fields for backward compatibility (face_refs & assets)
   try {

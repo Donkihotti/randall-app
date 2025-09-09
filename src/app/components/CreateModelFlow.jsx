@@ -419,17 +419,22 @@ export default function CreateModelFlow({ initialName = "" }) {
   const stepProps = { subjectId, subject, setStatus, showNotification, clearLock };
 
   const showGeneratingOverlay = (() => {
-    const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
-  
-    // determine if server already has sheet assets (so we can hide overlay)
-    const hasSheetAssets = Array.isArray(subject?.assets)
-      ? subject.assets.some(a => ["sheet_face", "sheet_body"].includes(a.type))
-      : false;
-  
-    // show overlay only while generating-sheet AND no sheet assets present,
-    // or when we very recently enqueued and no sheet assets yet.
-    return (!hasSheetAssets) && (status === "generating-sheet" || recentlyEnqueued);
-  })();
+        const recentlyEnqueued = lastEnqueueRef.current && (Date.now() - lastEnqueueRef.current < 5000);
+    
+        // If subject contains a canonical pointer sheet_asset_ids use that first
+        const hasSheetViaPointer = Array.isArray(subject?.sheet_asset_ids) && subject.sheet_asset_ids.length > 0;
+    
+        // Fallback: inspect subject.assets for sheet_face (legacy)
+        const hasSheetLegacy = Array.isArray(subject?.assets)
+          ? subject.assets.some(a => ["sheet_face", "sheet_body"].includes(a.type))
+          : false;
+    
+        const hasSheetAssets = hasSheetViaPointer || hasSheetLegacy;
+    
+        // show overlay only while generating-sheet AND no sheet assets present,
+        // or when we very recently enqueued and no sheet assets yet.
+        return (!hasSheetAssets) && (status === "generating-sheet" || recentlyEnqueued);
+      })();
 
   return (
     <div className="w-full mx-auto h-full">
