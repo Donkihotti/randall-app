@@ -189,7 +189,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
 
       <form onSubmit={handleGenerate} className="space-y-4">
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
-          className="textarea-default w-full p-2 bg-normal rounded-md" placeholder="Photorealistic female model, neutral expression..." />
+          className="textarea-default w-full p-2 bg-normal rounded-md  border border-light" placeholder="Photorealistic female model, neutral expression..." />
 
         <div className="flex flex-row justify-end gap-3">
         <button type="button" onClick={() => setStatus?.("choose")} className="px-3.5 bg-normal rounded-xs hover:cursor-pointer">

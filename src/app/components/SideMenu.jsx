@@ -8,7 +8,7 @@ import ButtonOrange from './buttons/ButtonOrange'
 const firstGroupLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
   { name: 'Projects', path: '/', icon: '/Folders.svg', alt: 'folders-icon'  },
-  { name: 'Models', path: '/', icon: '/Users_Group.svg', alt: 'models icon' },
+  { name: 'Models', path: '/models', icon: '/Users_Group.svg', alt: 'models icon' },
   { name: 'Assets', path: '/', icon: '/Drag_Horizontal.svg', alt: 'models icon' },
   { name: 'Templates', path: '/', icon: '/Layers.svg', alt: 'Templates icon' },
 ]
@@ -98,7 +98,6 @@ export default function SideMenu() {
           )}
         </div>
       </div>
-     
 
       <div className="mt-16 text-small text-white font-semibold flex flex-col w-full">
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 pb-3.5">

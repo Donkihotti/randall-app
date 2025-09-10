@@ -23,7 +23,7 @@ export default function Hero () {
                         <h1 className="font-instrument text-header leading-14">Introducing the new <br/> standard for creating <br/> visual assets with AI.</h1>
                         <h2 className="text-medium leading-7">Generate high-resolution visuals tuned to your brand kit. <br/> consistent, editable, and ready for campaigns.</h2>
                         <div className="flex flex-row gap-x-1">
-                            <Link href={"/signUpPage"} className="box-link">Start Creating</Link>
+                            <Link href={"/SignUpPage"} className="box-link">Start Creating</Link>
                             <ArrowBoxTopRight/>
                         </div>
                     </div>

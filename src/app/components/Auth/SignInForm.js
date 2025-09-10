@@ -43,23 +43,34 @@ export default function SignInForm({ redirectTo = '/private' }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 420, margin: '1.5rem auto' }}>
+    <form onSubmit={handleSubmit} style={{ margin: '1.5rem auto' }} className='text-black w-2/3'>
       <h2>Sign in</h2>
 
       {error && <div style={{ color: 'var(--danger, #b00020)', marginBottom: 12 }}>{error}</div>}
 
       <label style={{ display: 'block', marginBottom: 8 }}>
         Email
-        <input name="email" type="email" required />
+        <input 
+        name="email" 
+        type="email" 
+        required 
+        placeholder='Email'
+        className='input-default bg-[#EAEAEA] py-1 px-3.5 w-full rounded-xs'/>
       </label>
 
       <label style={{ display: 'block', marginBottom: 8 }}>
         Password
-        <input name="password" type="password" required />
+        <input 
+        name="password" 
+        type="password" 
+        required 
+        placeholder='Password'
+        className='input-default bg-[#EAEAEA] py-1 px-3.5 w-full rounded-xs'
+        />
       </label>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button type="submit" disabled={loading}>
+        <button className='bg-default-orange text-white px-3.5 py-1 w-full rounded-xs font-semibold hover:cursor-pointer' type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </div>

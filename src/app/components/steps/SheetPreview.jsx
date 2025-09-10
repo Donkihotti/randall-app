@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { getSubjectStatus } from "../../../../lib/apiClient";
 
 /**
  * SheetPreview
  * Props:
- *  - subjectId (optional)      // if provided, component will fetch subject status and assets
+ *  - subjectId (optional)      // if provided, component will fetch subject status and assets unless parent `subject` is provided
+ *  - subject (optional)        // canonical subject object provided by parent - prefer this
  *  - images (optional)         // array of assets: { id/assetId, url, signedUrl, object_path, meta, created_at, type }
  *  - filterTypes (optional)    // array of asset.type values to include; default includes sheet_face/sheet_body/generated_face
  *  - initialSelectedId (opt)   // asset id to show initially
@@ -16,8 +16,9 @@ import { getSubjectStatus } from "../../../../lib/apiClient";
  */
 export default function SheetPreview({
   subjectId = null,
+  subject = null,
   images = null,
-  filterTypes = ["sheet_face", "sheet_body", "generated_face", "preview", "sheet"],
+  filterTypes = null, // will be memoized below to avoid identity changes
   initialSelectedId = null,
   onSelect = null,
   onClose = null,
@@ -28,6 +29,14 @@ export default function SheetPreview({
   const [main, setMain] = useState(null); // currently displayed large image
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  // stable default for filter types — memoized so identity doesn't change each render
+  const effectiveFilterTypes = useMemo(() => {
+    return Array.isArray(filterTypes) && filterTypes.length
+      ? filterTypes
+      : ["sheet_face", "sheet_body", "generated_face", "preview", "sheet"];
+    // only recalculates if the incoming filterTypes reference actually changes
+  }, [filterTypes]);
+
   // Helper: normalize asset -> image object
   const normalize = (a) => {
     if (!a) return null;
@@ -37,43 +46,93 @@ export default function SheetPreview({
     return { id, url, meta: a.meta || {}, type: a.type || null, raw: a, created };
   };
 
-  // Fetch when subjectId provided AND images not provided
+  // Primary effect: prefer parent-provided subject (no fetch),
+  // else use provided images prop, else fallback to a one-time fetch.
   useEffect(() => {
     let mounted = true;
-    if (!subjectId || images) return; // no fetch needed
+
+    // If parent gave canonical subject, prefer it and do not fetch.
+    if (subject) {
+      const assets = Array.isArray(subject.assets) ? subject.assets : [];
+      console.log("[SheetPreview] using parent-provided subject; subjectId=", subject?.id, "assets_len=", assets.length);
+      const norm = assets
+        .map(normalize)
+        .filter((i) => i && effectiveFilterTypes.includes(i.type));
+
+      norm.sort((a, b) => {
+        const ta = a.created ? new Date(a.created).getTime() : 0;
+        const tb = b.created ? new Date(b.created).getTime() : 0;
+        return tb - ta;
+      });
+
+      if (mounted) {
+        setFetchedImages(norm);
+        setLoading(false);
+      }
+      return () => { mounted = false; };
+    }
+
+    // If explicit images prop provided, use that directly (no fetch).
+    if (images) {
+      console.log("[SheetPreview] using images prop; images_len=", images.length);
+      const norm = images.map(normalize).filter(Boolean);
+      norm.sort((a, b) => {
+        const ta = a.created ? new Date(a.created).getTime() : 0;
+        const tb = b.created ? new Date(b.created).getTime() : 0;
+        return tb - ta;
+      });
+      if (mounted) {
+        setFetchedImages(norm);
+        setLoading(false);
+      }
+      return () => { mounted = false; };
+    }
+
+    // Fallback: one-time fetch if we have subjectId but no parent subject or images.
+    if (!subjectId) {
+      if (mounted) {
+        setFetchedImages([]);
+        setLoading(false);
+      }
+      return () => { mounted = false; };
+    }
+
     setLoading(true);
     (async () => {
       try {
-        const res = await getSubjectStatus(subjectId);
+        console.log("[SheetPreview] fetching subject status once for subjectId=", subjectId);
+        const res = await fetch(`/api/subject/${encodeURIComponent(subjectId)}/status`, { credentials: 'include' });
         if (!mounted) return;
-        const subj = res?.subject || null;
+        const j = await res.json().catch(() => null);
+        const subj = j?.subject || null;
         const assets = Array.isArray(subj?.assets) ? subj.assets : [];
-        // normalize + filter types
+        console.log("[SheetPreview] fetched subject assets_len=", assets.length);
         const norm = assets
           .map(normalize)
-          .filter((i) => i && filterTypes.includes(i.type));
-        // sort newest-first by created (fallback alphabetic)
+          .filter((i) => i && effectiveFilterTypes.includes(i.type));
+
         norm.sort((a, b) => {
           const ta = a.created ? new Date(a.created).getTime() : 0;
           const tb = b.created ? new Date(b.created).getTime() : 0;
           return tb - ta;
         });
-        setFetchedImages(norm);
-        setLoading(false);
+
+        if (mounted) setFetchedImages(norm);
       } catch (err) {
-        console.error("SheetPreview fetch error:", err);
-        setFetchedImages([]);
-        setLoading(false);
+        console.error("[SheetPreview] fetch error:", err);
+        if (mounted) setFetchedImages([]);
+      } finally {
+        if (mounted) setLoading(false);
       }
     })();
+
     return () => { mounted = false; };
-  }, [subjectId, images, filterTypes]);
+  }, [subjectId, images, subject, effectiveFilterTypes]);
 
   // source images: prefer prop images if provided
   const srcImages = useMemo(() => {
     const arr = Array.isArray(images) ? images : fetchedImages;
     const norm = (arr || []).map(normalize).filter(Boolean);
-    // sort newest-first
     norm.sort((a, b) => {
       const ta = a.created ? new Date(a.created).getTime() : 0;
       const tb = b.created ? new Date(b.created).getTime() : 0;
@@ -88,14 +147,12 @@ export default function SheetPreview({
       setMain(null);
       return;
     }
-    // find initialSelectedId or pick first (newest)
     const picked = initialSelectedId ? srcImages.find((s) => s.id === initialSelectedId) : srcImages[0];
     setMain(picked || srcImages[0]);
   }, [srcImages, initialSelectedId]);
 
   function pickUrl(img) {
     if (!img) return null;
-    // if object_path seems to be a relative path (no http) we keep as-is (caller may handle)
     if (!img.url) return null;
     return img.url;
   }
@@ -116,8 +173,8 @@ export default function SheetPreview({
 
   return (
     <div className={`sheet-preview-root ${className}`}>
-      <div className="bg-white rounded shadow p-4">
-        <div className="flex items-start gap-4">
+      <div className="bg-normal border border-light rounded-md shadow p-4">
+        <div className="flex items-start gap-6">
           {/* Left: big preview */}
           <div className="flex-1">
             {loading ? (
@@ -133,19 +190,16 @@ export default function SheetPreview({
                 <img
                   src={pickUrl(main)}
                   alt={`sheet-main-${main.id || "main"}`}
-                  className="w-full max-h-[640px] object-cover rounded cursor-zoom-in"
+                  className="w-full max-h-[640px] object-cover rounded-xs cursor-zoom-in"
                   onClick={handleMainClick}
                 />
-                {/* small metadata / age */}
                 {main?.meta && (
                   <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 text-xs rounded">
                     {main.meta.version ? `v${main.meta.version}` : (main.meta.generated_by || "")}
                   </div>
                 )}
-                {/* optional previous-image thumbnail in top-right (if present) */}
                 {srcImages.length > 1 && (
                   <div className="absolute top-2 right-2 border bg-white/90 p-1 rounded w-24 h-24 overflow-hidden">
-                    {/* second newest */}
                     <img
                       src={pickUrl(srcImages[1])}
                       alt="previous-preview"
@@ -160,8 +214,7 @@ export default function SheetPreview({
 
           {/* Right: thumbnails + controls */}
           <div className="w-56 flex flex-col gap-3">
-            <div className="text-sm font-medium">All previews</div>
-            <div className="flex-1 overflow-auto space-y-2 pr-1">
+            <div className="flex-1 overflow-auto space-y-2 px-3.5">
               {srcImages.length === 0 && !loading && (
                 <div className="text-xs text-gray-500">No previews found.</div>
               )}
@@ -169,30 +222,13 @@ export default function SheetPreview({
                 <button
                   key={img.id || img.url}
                   onClick={() => handleThumbnailClick(img)}
-                  className={`w-full flex items-center gap-2 p-1 rounded transition ${main && img.id === main.id ? 'ring-2 ring-default-orange' : 'hover:bg-gray-50'}`}
+                  className={`w-full flex items-center gap-4 p-1 rounded transition ${main && img.id === main.id ? 'bg-lighter' : 'hover:bg-lighter hover:cursor-pointer'}`}
                 >
-                  <div className="w-16 h-16 bg-gray-100 overflow-hidden rounded">
+                  <div className="w-36 h-36 bg-red-100 overflow-hidden rounded">
                     <img src={pickUrl(img)} alt={`thumb-${img.id}`} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="text-left text-xs">
-                    <div className="font-medium truncate" style={{maxWidth: '160px'}}>{img.meta?.prompt ? img.meta.prompt.slice(0,40) : (img.type || 'preview')}</div>
-                    <div className="text-gray-500 text-[11px]">{img.created ? new Date(img.created).toLocaleString() : ''}</div>
                   </div>
                 </button>
               ))}
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleChoose}
-                disabled={!main}
-                className="flex-1 px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-              >
-                Choose this
-              </button>
-              {onClose && (
-                <button onClick={onClose} className="px-3 py-2 border rounded">Close</button>
-              )}
             </div>
           </div>
         </div>
@@ -206,7 +242,7 @@ export default function SheetPreview({
         >
           <div className="max-w-4xl max-h-full overflow-auto">
             <img src={pickUrl(main)} alt={`lightbox-${main.id}`} className="max-w-full max-h-[90vh] object-contain rounded" />
-            <div className="mt-2 text-white text-sm">{main.meta?.prompt || ''}</div>
+          
           </div>
         </div>
       )}

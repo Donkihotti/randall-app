@@ -1,113 +1,91 @@
 // src/app/api/subject/[id]/assets/route.js
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "../../../../../../lib/supabaseServer";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-/**
- * GET /api/subject/:id/assets?group=sheet|latest|all
- * Returns ordered asset rows (minimal fields) and ensures signedUrl present when possible.
- */
-export async function GET(req, { params }) {
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  // don't throw here — return error responses at runtime
+  console.warn("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment for /api/subject/[id]/assets");
+}
+
+const supabaseAdmin = createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
+
+export async function GET(request, { params }) {
   try {
-    // Next.js dynamic params are possibly a promise -> await
-    const resolvedParams = params && typeof params.then === "function" ? await params : params;
-    const { id } = resolvedParams || {};
-    if (!id) return NextResponse.json({ error: "Missing subject id" }, { status: 400 });
-
-    const url = new URL(req.url);
-    const group = (url.searchParams.get("group") || "all").toLowerCase(); // sheet, latest, all
-
-    // Fetch subject to get canonical pointers
-    const { data: subj, error: subjErr } = await supabaseAdmin
-      .from("subjects")
-      .select("id, sheet_asset_ids, latest_asset_ids")
-      .eq("id", id)
-      .single();
-
-    if (subjErr || !subj) {
-      return NextResponse.json({ error: "Subject not found" }, { status: 404 });
+    const { id: subjectId } = await params;
+    if (!subjectId) {
+      return NextResponse.json({ ok: false, error: "Missing subject id" }, { status: 400 });
     }
 
-    // determine asset ids to return (if per-group pointer exists)
-    let ids = null;
-    if (group === "sheet" && Array.isArray(subj.sheet_asset_ids) && subj.sheet_asset_ids.length) {
-      ids = subj.sheet_asset_ids;
-    } else if (group === "latest" && Array.isArray(subj.latest_asset_ids) && subj.latest_asset_ids.length) {
-      ids = subj.latest_asset_ids;
+    const url = new URL(request.url);
+    const group = url.searchParams.get("group"); // e.g. 'sheet'
+
+    // 1) fetch assets for subject (most recent first)
+    const { data: assetsData, error: assetsErr } = await supabaseAdmin
+      .from("assets")
+      .select("*")
+      .eq("subject_id", subjectId)
+      .order("created_at", { ascending: false });
+
+    if (assetsErr) {
+      console.error("/api/subject/[id]/assets - supabase error:", assetsErr);
+      return NextResponse.json({ ok: false, error: assetsErr.message || String(assetsErr) }, { status: 500 });
     }
 
-    let assets = [];
-    if (Array.isArray(ids) && ids.length > 0) {
-      // fetch rows for these ids
-      const { data: rows, error: rowsErr } = await supabaseAdmin
-        .from("assets")
-        .select("*")
-        .in("id", ids);
+    let assets = Array.isArray(assetsData) ? assetsData : [];
 
-      if (rowsErr) {
-        console.warn("GET /assets: failed to fetch asset rows", rowsErr);
-        return NextResponse.json({ error: "Failed to fetch assets" }, { status: 500 });
+    // 2) Apply group filter (lightweight server-side filtering)
+    if (group) {
+      const g = String(group).toLowerCase();
+      if (g === "sheet") {
+        // include explicit sheet types OR assets with meta.group === 'sheet'
+        assets = assets.filter(a =>
+          (a.type && ["sheet_face", "sheet_body"].includes(a.type)) ||
+          (a.meta && typeof a.meta === "object" && String(a.meta.group || "").toLowerCase() === "sheet")
+        );
+      } else {
+        // general fallback: filter assets where meta.group === group
+        assets = assets.filter(a => a.meta && typeof a.meta === "object" && String(a.meta.group || "").toLowerCase() === g);
       }
-
-      // map rows by id for ordering
-      const map = new Map();
-      for (const r of rows) {
-        map.set(r.id, r);
-      }
-      // return in requested order
-      for (const aid of ids) {
-        const r = map.get(aid);
-        if (r) assets.push(r);
-      }
-    } else {
-      // fallback: return all assets for subject
-      const { data: rowsAll, error: rowsAllErr } = await supabaseAdmin
-        .from("assets")
-        .select("*")
-        .eq("subject_id", id)
-        .order("created_at", { ascending: false });
-      if (rowsAllErr) {
-        console.warn("GET /assets: failed to fetch all assets", rowsAllErr);
-        return NextResponse.json({ error: "Failed to fetch assets" }, { status: 500 });
-      }
-      assets = rowsAll || [];
     }
 
-    // Ensure each asset has a usable URL (signedUrl or url)
-    const out = [];
-    for (const a of assets) {
-      const urlCandidate = a.signedUrl || a.url || null;
-      let signed = urlCandidate;
-      if (!signed && a.object_path && a.bucket) {
-        try {
-          const { data: signedData, error: signedErr } = await supabaseAdmin
-            .storage
-            .from(a.bucket)
-            .createSignedUrl(a.object_path, 60 * 60 /* 1h */);
-          if (!signedErr && signedData?.signedUrl) signed = signedData.signedUrl;
-        } catch (e) {
-          console.warn("createSignedUrl failed for", a.object_path, e);
+    // 3) Generate signed urls where possible (best-effort)
+    const signedAssets = await Promise.all(assets.map(async (a) => {
+      const copy = { ...a };
+      try {
+        const bucket = a.bucket || process.env.SUPABASE_GENERATED_BUCKET || "generated";
+        const objectPath = a.object_path || a.objectPath || a.object || null;
+        if (bucket && objectPath) {
+          const { data: urlData, error: urlErr } = await supabaseAdmin.storage
+            .from(bucket)
+            .createSignedUrl(objectPath, 60 * 60); // 1 hour
+          if (!urlErr && urlData) {
+            copy.signedUrl = (urlData.signedUrl || urlData.signedURL) || null;
+          }
         }
+      } catch (e) {
+        // swallow individual asset errors, but keep the row
+        console.warn("/api/subject/[id]/assets - createSignedUrl failed for asset", a.id, e);
       }
-      out.push({
-        id: a.id,
-        subject_id: a.subject_id,
-        type: a.type,
-        object_path: a.object_path,
-        bucket: a.bucket,
-        filename: a.filename,
-        url: a.url || null,
-        signedUrl: signed || null,
-        meta: a.meta || {},
-        parent_id: a.parent_id || null,
-        version: a.version || null,
-        created_at: a.created_at || null,
-        updated_at: a.updated_at || null,
-      });
+      return copy;
+    }));
+
+    // 4) Optionally include subject row for convenience (helps client reconciliation)
+    let subjectRow = null;
+    try {
+      const { data: s, error: sErr } = await supabaseAdmin.from("subjects").select("*").eq("id", subjectId).single();
+      if (!sErr && s) subjectRow = s;
+    } catch (e) {
+      // non-fatal
     }
 
-    return NextResponse.json({ ok: true, assets: out });
-  } catch (err) {
-    console.error("GET /api/subject/:id/assets error:", err);
-    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
+    return NextResponse.json({ ok: true, assets: signedAssets, subject: subjectRow }, { status: 200 });
+  } catch (e) {
+    console.error("/api/subject/[id]/assets - unexpected error", e);
+    return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
 }

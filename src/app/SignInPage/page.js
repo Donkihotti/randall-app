@@ -9,7 +9,7 @@ export default function SignUpPage () {
     return ( 
         <section className="w-screen h-screen flex justify-center items-center bg-[url(/bg.jpeg)] bg-center bg-cover">
             <section className="w-10/12 h-9/12 bg-white rounded-md p-small flex flex-row drop-shadow-2xl">
-                <div className="h-full w-3/8 flex flex-col items-center relative">
+                <div className="h-full w-3/8 flex flex-col items-center relative pr-3.5">
                     <div className="absolute top-0 left-0">
                         <Logo />
                     </div>

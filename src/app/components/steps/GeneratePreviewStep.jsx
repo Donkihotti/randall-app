@@ -250,7 +250,7 @@ export default function GeneratePreviewStep({
         {(!newest) ? (
           <div className="p-8 border rounded text-gray-500">No previews yet — wait for generation or try regenerate.</div>
         ) : (
-          <div className="border rounded overflow-hidden">
+          <div className="border border-light bg-normal rounded overflow-hidden p-3.5">
             {/* Main big image */}
             <img
               src={newest.url}
@@ -258,7 +258,6 @@ export default function GeneratePreviewStep({
               className="w-full h-[520px] object-cover cursor-pointer"
               onClick={() => setOpenImage(newest.url)}
             />
-            <div className="p-2 text-xs text-gray-600">Newest preview</div>
 
             {/* Parent (old) small overlay */}
             {parent && parent.url && (
@@ -276,13 +275,13 @@ export default function GeneratePreviewStep({
       </div>
 
       <div className="mt-4">
-        <div className="relative w-full">
+        <div className="relative w-full rounded-md">
           <textarea
             rows={4}
             value={editPrompt}
             onChange={(e) => setEditPrompt(e.target.value)}
             placeholder="Describe the edit (e.g. soften lighting, add subtle smile)"
-            className="textarea-default bg-normal w-full p-2 border rounded text-sm"
+            className="textarea-default bg-normal w-full p-2 rounded-md text-sm"
           />
 
           <button

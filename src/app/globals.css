@@ -10,7 +10,7 @@
     @apply appearance-none focus:outline-none focus:ring-0 focus:shadow-none bg-none border-0;
   }
   .textarea-default {
-    @apply appearance-none outline-none resize-none border-none bg-transparent shadow-none p-2 m-0;
+    @apply appearance-none outline-none resize-none border border-light bg-transparent shadow-none p-2 m-0;
   }
   .box-link {
     @apply px-3 py-1 text-small border rounded-xs border-black w-fit;
@@ -86,7 +86,7 @@
     --text-normal: 24px; 
     --text-smallest: 12px; 
 
-    --padding-page: 35px; 
+    --padding-page: 24px; 
     --padding-small: 12px; 
     --rounded-mid: 6px; 
   }

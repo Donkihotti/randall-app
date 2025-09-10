@@ -3,59 +3,21 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "../../../../../../../../utils/supabase/server";
 import { supabaseAdmin } from "../../../../../../../../lib/supabaseServer";
 
-/**
- * Helper: fetch assets for subject and ensure each asset has a usable signedUrl field.
- */
-async function fetchAssetsWithSignedUrls(subjectId) {
-  const { data: assets = [], error } = await supabaseAdmin
-    .from("assets")
-    .select("*")
-    .eq("subject_id", subjectId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.warn("fetchAssetsWithSignedUrls: assets query error", error);
-    return [];
-  }
-
-  const out = [];
-  for (const a of assets) {
-    const asset = { ...a };
-    try {
-      if (!asset.url && asset.object_path) {
-        try {
-          const { data: signedData, error: signErr } = await supabaseAdmin.storage
-            .from(asset.bucket || "generated")
-            .createSignedUrl(asset.object_path, 60 * 60);
-          asset.signedUrl = (!signErr && signedData?.signedUrl) ? signedData.signedUrl : null;
-        } catch (e) {
-          asset.signedUrl = null;
-        }
-      } else {
-        asset.signedUrl = asset.url || null;
-      }
-    } catch (e) {
-      asset.signedUrl = asset.url || null;
-    }
-    out.push(asset);
-  }
-  return out;
-}
-
 export async function POST(req, { params }) {
   try {
-    // NOTE: `params` is a promise-like in Next dynamic routes; await it before using its properties.
+    // Await params to satisfy Next.js dynamic route requirement
     const resolvedParams = params && typeof params.then === "function" ? await params : params;
+    const { id: subjectId, assetId } = resolvedParams || {};
+
     const supabase = await createServerSupabase();
     const { data: userData, error: userErr } = await supabase.auth.getUser();
     if (userErr) console.warn("accept asset: auth.getUser error", userErr);
     const user = userData?.user;
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id: subjectId, assetId } = resolvedParams || {};
     if (!subjectId || !assetId) return NextResponse.json({ error: "Missing params" }, { status: 400 });
 
-    // Load asset (service role)
+    // Verify asset belongs to subject and subject belongs to user
     const { data: assetRow, error: assetErr } = await supabaseAdmin
       .from("assets")
       .select("*")
@@ -70,7 +32,7 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Asset does not belong to subject" }, { status: 400 });
     }
 
-    // Ensure subject exists and owner matches user
+    // Ensure user owns the subject (double-check)
     const { data: subjectRow, error: subjErr } = await supabaseAdmin
       .from("subjects")
       .select("id, owner_id")
@@ -87,19 +49,19 @@ export async function POST(req, { params }) {
 
     const nowIso = new Date().toISOString();
 
-    // 1) Mark other assets of same type inactive for this subject (best-effort)
+    // 1) Mark all subject assets of this type inactive (we only want one 'active' generated asset)
+    //    then mark this asset active.
     try {
-      const { error: deactivateErr } = await supabaseAdmin
+      await supabaseAdmin
         .from("assets")
         .update({ active: false, updated_at: nowIso })
         .eq("subject_id", subjectId)
         .eq("type", assetRow.type);
-      if (deactivateErr) console.warn("accept asset: failed to deactivate others", deactivateErr);
     } catch (e) {
-      console.warn("accept asset: deactivate exception", e);
+      console.warn("accept asset: failed to deactivate others", e);
+      // not fatal — proceed
     }
 
-    // 2) Activate the chosen asset
     const { data: activated, error: activateErr } = await supabaseAdmin
       .from("assets")
       .update({ active: true, updated_at: nowIso })
@@ -112,61 +74,55 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Failed to activate asset" }, { status: 500 });
     }
 
-    // 3) Enqueue a generate-sheet job referencing the parent/accepted asset
+    // 2) Update subject status so worker or uploader will generate sheet next
+    const newStatus = "queued_generation";
+    try {
+      await supabaseAdmin
+        .from("subjects")
+        .update({ status: newStatus, updated_at: nowIso })
+        .eq("id", subjectId);
+    } catch (e) {
+      console.warn("accept asset: failed to update subject status", e);
+      // Not fatal — continue
+    }
+
+    // 3) Enqueue a job to start sheet generation immediately (include created_by to satisfy schema/triggers)
     let jobId = null;
     try {
-      const payload = { parentAssetId: assetId, previewOnly: true };
       const { data: jobRow, error: jobErr } = await supabaseAdmin
         .from("jobs")
-        .insert([{
-          subject_id: subjectId,
-          type: "generate-sheet",
-          payload,
-          status: "queued",
-        }])
+        .insert([
+          {
+            subject_id: subjectId,
+            type: "generate-sheet",
+            payload: { accepted_asset_id: assetId },
+            status: "queued",
+            created_by: user.id,     // <<< IMPORTANT: include created_by
+          },
+        ])
         .select()
         .single();
 
-      if (!jobErr && jobRow) {
-        jobId = jobRow.id;
-      } else if (jobErr) {
-        console.warn("accept asset: enqueue job error", jobErr);
-      }
+      if (!jobErr && jobRow) jobId = jobRow.id;
+      if (jobErr) console.warn("accept asset: enqueue job error", jobErr);
     } catch (e) {
       console.warn("accept asset: enqueue job exception", e);
     }
 
-    // 4) Update subject.status AFTER enqueue attempt (reduces race with poll)
-    try {
-      const newStatus = jobId ? "queued_generation" : "awaiting-approval";
-      const { error: subjUpdateErr } = await supabaseAdmin
-        .from("subjects")
-        .update({ status: newStatus, updated_at: nowIso })
-        .eq("id", subjectId);
-      if (subjUpdateErr) console.warn("accept asset: failed to update subject status", subjUpdateErr);
-    } catch (e) {
-      console.warn("accept asset: update subject status exception", e);
-    }
-
-    // 5) Return fresh subject row and current assets (assets enriched with signedUrl)
+    // 4) Fetch fresh subject row (with minimal fields) to return to client
     let freshSubj = null;
     try {
-      const { data: s, error: sErr } = await supabaseAdmin
+      const { data: fs, error: freshErr } = await supabaseAdmin
         .from("subjects")
         .select("*")
         .eq("id", subjectId)
         .single();
-      if (!sErr && s) freshSubj = s;
-      else if (sErr) console.warn("accept asset: fetch fresh subject error", sErr);
+      if (!freshErr && fs) freshSubj = fs;
     } catch (e) {
-      console.warn("accept asset: fetch subject exception", e);
+      console.warn("accept asset: failed to fetch fresh subject", e);
     }
 
-    const assets = await fetchAssetsWithSignedUrls(subjectId);
-
-    if (freshSubj) freshSubj.assets = assets;
-
-    return NextResponse.json({ ok: true, jobId: jobId || null, subject: freshSubj || null, assets });
+    return NextResponse.json({ ok: true, jobId: jobId || null, subject: freshSubj || null });
   } catch (err) {
     console.error("accept asset route error:", err);
     return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });

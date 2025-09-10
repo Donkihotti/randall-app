@@ -15,7 +15,7 @@ export default function Dashboard () {
     const [showProjectModal, setProjectModal] = useState(false); 
     return (
         <PageLayout>
-            <section className="w-full min-h-screen flex flex-col p-4 md:p-6">
+            <section className="w-full min-h-screen flex flex-col">
              <UserCredits />   
             <span className="text-lg md:text-xl text-white font-medium">Dashboard</span>
 
@@ -24,7 +24,7 @@ export default function Dashboard () {
             </div>
 
             <div className="w-full flex flex-row gap-x-3.5">
-            <section className="w-fit border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
+            <section className="w-4/6 border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
                 <div className="w-full h-8 bg-light absolute top-0 left-0 rounded-t-md flex items-center px-6">
                 
                 </div>
@@ -67,9 +67,11 @@ export default function Dashboard () {
                 </div>
                 </section>
             </section>
-            <section className="bg-normal w-fit h-96 rounded-md">
-                <div className="w-full">
-
+            <section className="bg-normal h-96 rounded-md flex flex-col p-3.5 w-2/6">
+                <span className="mb-5">Recent Projects</span>
+                <div className="min-w-96 h-1/3 bg-normal-dark p-3.5 flex flex-row gap-x-3.5 rounded-xs">
+                    <div className="w-48 h-full bg-normal rounded-xs"></div>
+                    <p>Project name</p>
                 </div>
             </section>
             </div>

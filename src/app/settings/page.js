@@ -20,11 +20,13 @@ export default async function SettingsPage() {
   const profile = profileData ?? { id: user.id, username: '', display_name: '', bio: '' }
 
   return (
-    <PageLayout style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
-      <h1 className='text-medium'>Settings</h1>
-      <p className='text-small'>Manage your profile and account details.</p>
-      <span className='text-small text-white'>Account Details</span>
+    <PageLayout>
+        <div className='flex flex-col w-full h-full items-center justify-center'>
+        <h1 className='text-medium'>Settings</h1>
+        <p className='text-small'>Manage your profile and account details.</p>
+        <span className='text-small text-white'>Account Details</span>
       <SettingsForm initialProfile={profile} />
+        </div>
     </PageLayout>
   )
 }

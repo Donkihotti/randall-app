@@ -5,7 +5,7 @@ export default function ProgressBar({ steps = [], currentStatus = "" }) {
   const pct = steps.length > 1 ? Math.round((idx / (steps.length - 1)) * 100) : 0;
 
   return (
-    <div className="w-3xs bg-normal p-3.5 rounded-xs relative">
+    <div className="w-3xs bg-normal p-3.5 rounded-xs relative border border-light">
         <div className="bg-normal-dark w-fit px-3 py-0.5 rounded-xs absolute top-3.5 left-3.5">
         <p className="text-lighter text-supersmall">{currentStatus}</p>
         </div>
