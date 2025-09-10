@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 import ButtonOrange from './buttons/ButtonOrange'
+import LogoutButton from './buttons/SignOutButton'
 
 const firstGroupLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
@@ -31,6 +32,28 @@ export default function SideMenu() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+    // Close when clicking outside
+    useEffect(() => {
+      function handleClickOutside(event) {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsOpen(false);
+        }
+      }
+  
+      if (isOpen) {
+        document.addEventListener("mousedown", handleClickOutside);
+      } else {
+        document.removeEventListener("mousedown", handleClickOutside);
+      }
+  
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [isOpen]);
 
   useEffect(() => {
     let mounted = true
@@ -85,10 +108,11 @@ export default function SideMenu() {
   }, [])
 
   return (
-    <div className="w-62 h-screen bg-normal z-10 relative">
-      <div className="flex flex-row pl-2 py-2 overflow-hidden bg-normal-dark rounded-md mx-3.5 items-center gap-x-3">
+    <div className="w-62 h-screen bg-normal z-10 relative" ref={dropdownRef}>
+    <div className='w-full px-3.5'>
+      <button className={`flex flex-row pl-1 py-1 overflow-hidden border border-light w-full rounded-md items-center gap-x-3 hover:cursor-pointer hover:bg-light ${isOpen ? 'bg-light' : ''}`} onClick={() => setIsOpen(!isOpen)}>
         <div className="h-7 w-7 bg-default-orange rounded-xs flex items-center justify-center"><p className='text-2xl font-semibold'>#</p></div>
-        <div>
+        <div className='flex flex-row gap-x-10 items-center'> 
           {loading ? (
             <div className="text-sm">Loading…</div>
           ) : profile ? (
@@ -96,13 +120,46 @@ export default function SideMenu() {
           ) : (
             <Link className="text-sm font-semibold" href="/login">Sign in</Link>
           )}
+          <Image
+          src={"/Unfold_More.svg"}
+          alt='unfold more icon'
+          width={22}
+          height={22}
+          />
         </div>
+      </button>
       </div>
+      {isOpen && (
+        <div className="absolute left-3.5 mt-1 w-3xs text-white bg-[#323232] border-[0.5px] border-light rounded-md z-10 p-2 drop-shadow-md">
+            <div className='flex flex-col'>
+            <div className='flex flex-row w-full gap-x-2'>
+                <div className='w-10 h-10 bg-normal-dark rounded-xs'></div>
+                <div className='flex flex-col'>
+                    <p className='text-small font-semibold'>{profile.username}</p>
+                    <p className='text-xs'>User plan</p>
+                    </div>
+            </div>
+            </div>
+            <div className='border rounded-xs border-light pl-2 pr-3.5 py-1 text-small w-fit flex flex-row gap-x-2 hover:cursor-pointer my-3.5'>
+                <Image 
+                src={"/Settings.svg"}
+                alt='Settings icon'
+                width={14}
+                height={14}
+                />
+                <span>Settings</span>
+            </div>
+            <hr className='text-light my-1'/>
+            <div className='w-full hover:bg-light hover:cursor-pointer py-1 rounded-xs'>
+                <button className='text-small text-lighter font-semibold ml-2'>Log out</button>
+            </div>
+        </div>
+      )}
 
       <div className="mt-16 text-small text-white font-semibold flex flex-col w-full">
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 pb-3.5">
           {firstGroupLinks.map((item, i) => (
-            <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+            <div className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
              <Image 
              src={item.icon}
              alt={item.alt}
@@ -118,7 +175,7 @@ export default function SideMenu() {
 
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 py-3.5">
           {secondGroupLinks.map((item, i) => (
-              <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+              <div className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
               <Image 
               src={item.icon}
               alt={item.alt}
@@ -134,7 +191,7 @@ export default function SideMenu() {
 
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 py-3.5">
           {thirdGroupLinks.map((item, i) => (
-            <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+            <div className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
             <Image 
             src={item.icon}
             alt={item.alt}
@@ -150,7 +207,7 @@ export default function SideMenu() {
 
         <div className="w-full gap-y-2 flex flex-col border-b border-[#545454] px-3.5 py-3.5">
           {fourthGroupLinks.map((item, i) => (
-            <div className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
+            <div className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer' key={i}>
             <Image 
             src={item.icon}
             alt={item.alt}
@@ -166,7 +223,7 @@ export default function SideMenu() {
       </div>
     
     <div className='w-full px-3.5'>
-      <Link href={'/settings'} className='flex flex-row gap-x-2 hover:bg-lighter rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
+      <Link href={'/settings'} className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
         <Image
         src={"/Settings.svg"}
         alt='settings-icon'
