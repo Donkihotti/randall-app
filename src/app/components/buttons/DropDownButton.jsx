@@ -46,7 +46,7 @@ export default function DropDownButton({ text }) {
       </button>
 
       {isOpen && (
-        <div className="absolute px-1 left-0 mt-2 w-40 text-white origin-top-right bg-normal border-[0.5px] border-light rounded-md z-10">
+        <div className="absolute px-1 left-0 mt-1 w-40 text-white origin-top-right bg-normal border-[0.5px] border-light rounded-md z-10">
           <div className="py-1">
             <a
               href="#"
@@ -58,7 +58,7 @@ export default function DropDownButton({ text }) {
               href="#"
               className="block px-4 py-2 text-sm hover:bg-light"
             >
-              Create new project
+            New project
             </a>
           </div>
         </div>

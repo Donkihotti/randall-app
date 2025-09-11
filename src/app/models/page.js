@@ -1,45 +1,103 @@
-'use client'; 
+// src/app/models/page.client.jsx
+"use client";
 
 import { useEffect, useState } from "react";
-import PageLayout from "../components/PageLayout/PageLayout";
+import Link from "next/link";
 import Image from "next/image";
+import PageLayout from "../components/PageLayout/PageLayout";
 
-export default function ModelsPage () { 
-const [ subjects, setSubjects ] = useState([]); 
+export default function ModelsPage() {
+  const [models, setModels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    useEffect(() => { 
-        async function fetchSubjects() { 
-            const res = await fetch("/api/subject");
-            const result = await res.json();  
-            if (res.ok) {
-                setSubjects(result.subjects);
-            } else {
-                console.error(result.error)
-            }
-        } 
-        fetchSubjects()
-    }, []); 
+  useEffect(() => {
+    let mounted = true;
 
-    return ( 
-        <PageLayout>
-           <h1 className="text-medium">Models</h1> 
-           <div className="flex flex-row flex-wrap gap-x-3.5 mt-8">
-            {subjects.map((s, i)=> (
-                <div className="text-white bg-normal w-1/3 mb-3.5 h-36 rounded-xs p-small flex flex-row border border-light hover:cursor-pointer" key={i}>
-                    <Image
-                    src={s.face_refs}
-                    alt={s.name}
-                    width={120}
+    async function fetchModels() {
+      console.log("[ModelsPage] fetching /api/models (cookies)");
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("/api/models", {
+          method: "GET",
+          credentials: "include", // important: send HttpOnly cookies
+          cache: "no-store",
+        });
+
+        console.log("[ModelsPage] /api/models status:", res.status);
+        const json = await res.json().catch((e) => {
+          console.error("[ModelsPage] failed to parse json", e);
+          throw e;
+        });
+        console.log("[ModelsPage] /api/models json:", json);
+
+        if (!res.ok) {
+          throw new Error(json?.error || `API error ${res.status}`);
+        }
+
+        // normalize rows: ensure asset_ids are arrays
+        const normalized = (json.models || []).map((r) => {
+          let asset_ids = r.asset_ids ?? [];
+          if (typeof asset_ids === "string") {
+            try { asset_ids = JSON.parse(asset_ids); } catch (e) { asset_ids = []; }
+          }
+          if (!Array.isArray(asset_ids)) asset_ids = [];
+          return { ...r, asset_ids };
+        });
+
+        if (mounted) setModels(normalized);
+      } catch (err) {
+        console.error("[ModelsPage] load error", err);
+        if (mounted) setError(err.message || String(err));
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    fetchModels();
+    return () => { mounted = false; };
+  }, []);
+
+  return (
+    <PageLayout>
+      <div className="flex items-center justify-between">
+        <h1 className="text-medium">Models</h1>
+      </div>
+
+      {loading && <div className="mt-4">Loading…</div>}
+      {error && <div className="mt-4 text-red-600">Error: {error}</div>}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mt-6">
+        {models.map((m) => (
+          <Link key={m.id} href={`/model/${m.id}`} className="block">
+            <div className="box-bg-normal p-3 flex gap-3 hover:shadow-md transition">
+              <div className="w-28 h-20 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                {m.thumbnail_url ? (
+                  // Next/Image expects absolute URL allowed by next.config for external hosts,
+                  // or use <img> if the signedURL is from a different origin. Using Image is fine if allowed.
+                  <Image
+                    src={m.thumbnail_url}
+                    alt={m.name || "thumbnail"}
+                    width={160}
                     height={120}
-                    
-                    />
-                    <div className="flex flex-col">
-                        <p key={s.id + 1}>{s.name}</p>
-                        <p>{s.created_at}</p>
-                    </div>
-                </div>
-            ))}
-        </div>
-        </PageLayout>
-    )
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <div className="text-xs text-gray-600 px-2 text-center">No preview</div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <div className="font-semibold text-small text-white">{m.name || "Untitled"}</div>
+                <div className="text-sm text-gray-500 mt-1">Assets: {Array.isArray(m.asset_ids) ? m.asset_ids.length : "?"}</div>
+                <div className="text-xs text-gray-400 mt-2">{new Date(m.created_at).toLocaleString()}</div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </PageLayout>
+  );
 }

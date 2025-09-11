@@ -67,7 +67,7 @@ export default function Dashboard () {
                 </div>
                 </section>
             </section>
-            <section className="bg-normal h-96 rounded-md flex flex-col p-3.5 w-2/6">
+            <section className="box-bg-normal h-96  flex flex-col p-3.5 w-2/6">
                 <span className="mb-5">Recent Projects</span>
                 <div className="min-w-96 h-1/3 bg-normal-dark p-3.5 flex flex-row gap-x-3.5 rounded-xs">
                     <div className="w-48 h-full bg-normal rounded-xs"></div>

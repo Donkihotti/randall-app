@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 
-import ButtonOrange from './buttons/ButtonOrange'
 import SettingsModal from './modals/SettingsModal'
+import LogoutButton from './buttons/LogOutButton'
 
 const firstGroupLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
   { name: 'Projects', path: '/', icon: '/Folders.svg', alt: 'folders-icon'  },
-  { name: 'Models', path: '/models', icon: '/Users_Group.svg', alt: 'models icon' },
+  { name: 'Models', path: '/model/63ff9406-c948-49ca-8f13-dc4f411fe7db', icon: '/Users_Group.svg', alt: 'models icon' },
   { name: 'Assets', path: '/', icon: '/Drag_Horizontal.svg', alt: 'models icon' },
   { name: 'Templates', path: '/', icon: '/Layers.svg', alt: 'Templates icon' },
 ]
@@ -65,7 +65,7 @@ export default function SideMenu() {
       try {
         const res = await fetch('/api/profile/me', {
           method: 'GET',
-          credentials: 'same-origin', // IMPORTANT: send cookies
+          credentials: 'include', // IMPORTANT: send cookies
           headers: { 'Accept': 'application/json' },
         })
 
@@ -153,7 +153,7 @@ export default function SideMenu() {
             </div>
             <hr className='text-light my-1'/>
             <div className='w-full hover:bg-light hover:cursor-pointer py-1 rounded-xs'>
-                <button className='text-small text-lighter font-semibold ml-2 hover:cursor-pointer'>Log out</button>
+            <LogoutButton redirectTo="/"/>
             </div>
         </div>
       )}

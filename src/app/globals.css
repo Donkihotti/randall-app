@@ -21,6 +21,9 @@
   .box-outside { 
     @apply rounded
   }
+  .box-bg-normal { 
+    @apply rounded-md border-light bg-normal border 
+  }
 }
 
 /* Autofill overrides for Chrome / WebKit */
