@@ -1,6 +1,7 @@
 // src/app/api/subject/[id]/save/route.js
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerSupabase } from "../../../../../../utils/supabase/server";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY; // server-only key
@@ -22,7 +23,8 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 */
 export async function POST(request, { params }) {
   try {
-    const subjectId = await params?.id;
+    // params is synchronous — don't await it
+    const { id: subjectId } = await params;
     if (!subjectId) {
       return NextResponse.json({ ok: false, error: "Missing subject id" }, { status: 400 });
     }
@@ -31,22 +33,43 @@ export async function POST(request, { params }) {
     const name = body?.name || null;
     const includeAssetIdsOverride = Array.isArray(body?.includeAssetIds) ? body.includeAssetIds : null;
 
-    // --- Authenticate: adapt to your app
-    // Example: if you're using cookie-based Supabase auth there are established helpers.
-    // For a simple example here we expect the client to send an Authorization bearer token.
-    // Replace below with your implementation (recommended: use supabase-auth-helpers or NextAuth)
-    const authHeader = request.headers.get("authorization") || "";
-    const bearer = authHeader.replace("Bearer ", "").trim();
+    // --- Authenticate
+    // 1) Try cookie-based session via createServerSupabase() helper (preferred for browser requests with cookies)
+    // 2) Fallback: accept Authorization: Bearer <access_token>
     let userId = null;
-    if (bearer) {
-      // validate token (this uses the Admin client but we can call auth.getUser with the access token)
-      const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(bearer);
+    try {
+      // create server supabase client bound to request cookies (reads Supabase session cookie if present)
+      const serverSupabase = await createServerSupabase();
+      // supabase.auth.getUser() will check the session token bound to this server client
+      const { data: userData, error: userErr } = await serverSupabase.auth.getUser();
       if (!userErr && userData?.user?.id) {
         userId = userData.user.id;
+        console.log("[save route] authenticated via cookie, userId=", userId);
+      } else if (userErr) {
+        console.log("[save route] serverSupabase.auth.getUser() returned error", userErr);
+     }
+   } catch (e) {
+     console.warn("[save route] createServerSupabase/getUser failed:", e);
+   }
+   // fallback: Authorization header with bearer token
+   if (!userId) {
+     const authHeader = request.headers.get("authorization") || "";
+     const bearer = authHeader.replace("Bearer ", "").trim();
+     if (bearer) {
+       try {
+         const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(bearer);
+         if (!userErr && userData?.user?.id) {
+           userId = userData.user.id;
+            console.log("[save route] authenticated via bearer token, userId=", userId);
+          } else {
+            console.log("[save route] supabaseAdmin.auth.getUser returned error or no user", userErr);
+          }
+        } catch (e) {
+          console.warn("[save route] supabaseAdmin.getUser(bearer) failed:", e);
+        }
       }
     }
 
-    // Optional fallback: if you cannot get user id, require the client to be authenticated via cookies
     if (!userId) {
       return NextResponse.json({ ok: false, error: "Unauthorized: missing valid auth" }, { status: 401 });
     }

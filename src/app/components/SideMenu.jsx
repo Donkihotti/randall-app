@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
+
 import ButtonOrange from './buttons/ButtonOrange'
-import LogoutButton from './buttons/SignOutButton'
+import SettingsModal from './modals/SettingsModal'
 
 const firstGroupLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
@@ -32,6 +33,7 @@ export default function SideMenu() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false); 
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -123,8 +125,8 @@ export default function SideMenu() {
           <Image
           src={"/Unfold_More.svg"}
           alt='unfold more icon'
-          width={22}
-          height={22}
+          width={18}
+          height={18}
           />
         </div>
       </button>
@@ -140,7 +142,7 @@ export default function SideMenu() {
                     </div>
             </div>
             </div>
-            <div className='border rounded-xs border-light pl-2 pr-3.5 py-1 text-small w-fit flex flex-row gap-x-2 hover:cursor-pointer my-3.5'>
+            <div className='border rounded-xs border-light pl-2 pr-3.5 py-1 text-small w-fit flex flex-row gap-x-2 hover:cursor-pointer my-3.5' onClick={() => setShowSettingsModal(true)}>
                 <Image 
                 src={"/Settings.svg"}
                 alt='Settings icon'
@@ -151,7 +153,7 @@ export default function SideMenu() {
             </div>
             <hr className='text-light my-1'/>
             <div className='w-full hover:bg-light hover:cursor-pointer py-1 rounded-xs'>
-                <button className='text-small text-lighter font-semibold ml-2'>Log out</button>
+                <button className='text-small text-lighter font-semibold ml-2 hover:cursor-pointer'>Log out</button>
             </div>
         </div>
       )}
@@ -249,6 +251,7 @@ export default function SideMenu() {
                 <p className="text-xs mt-2">Join our discord channel to get useful tips from other users.</p>
             </div>
       </div>
+      <SettingsModal open={showSettingsModal} onClose={() => setShowSettingsModal(false)}></SettingsModal>
     </div>
   )
 }

@@ -3,7 +3,8 @@
  import { useEffect, useState, useRef } from "react";
  import { enqueueModelSheet } from "../../../../lib/apiClient";
  import SheetPreview from "./SheetPreview";
-import ButtonOrange from "../buttons/ButtonOrange";
+ import ButtonOrange from "../buttons/ButtonOrange";
+ import { useRouter } from "next/navigation";
  
  /**
   * GenerateSheetStep
@@ -15,6 +16,7 @@ import ButtonOrange from "../buttons/ButtonOrange";
    const [sheetAssets, setSheetAssets] = useState([]); // canonical sheet assets we fetched
    const mountedRef = useRef(true);
    const [isSaving, setIsSaving] = useState(false);
+   const router = useRouter();
  
    // debug log to make it obvious what parent subject contains
    console.log("[GenerateSheetStep] mount subjectId=", subjectId, "subject_assets_len=", Array.isArray(subject?.assets) ? subject.assets.length : 0);
@@ -71,7 +73,7 @@ import ButtonOrange from "../buttons/ButtonOrange";
      }
  
      let aborted = false;
-     const maxAttempts = 25;
+     const maxAttempts = 27;
      const intervalMs = 1500;
  
      async function fetchSheetAssetsOnce() {
@@ -209,11 +211,18 @@ import ButtonOrange from "../buttons/ButtonOrange";
       // optionally show a notification
       if (typeof showNotification === "function") showNotification("Saved model collection — returning to dashboard", "info");
 
-      // navigate back to dashboard
+    //navigate back to dashboard
+    // ensure we unset saving state (so UI updates) before navigating
+    setIsSaving(false);
+    console.log("[GenerateSheetStep] save succeeded, navigating to /dashboard; collectionId=", j?.id);
+    try {
       router.push("/dashboard");
+    } catch (e) {
+      console.warn("[GenerateSheetStep] router.push failed", e);
+    }
     } catch (err) {
       console.error("handleSaveAndExit error", err);
-      alert("Save failed");
+      alert("Save failed: " + (err?.message || String(err)));
       setIsSaving(false);
     }
   }
