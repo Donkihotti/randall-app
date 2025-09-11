@@ -128,7 +128,7 @@ export async function GET(request) {
               .storage
               .from(assetRow.bucket)
               .createSignedUrl(assetRow.object_path, signedExpirySec);
-            if (!signErr && signed?.signedURL) thumbnail_url = signed.signedURL;
+            if (!signErr && signed?.signedUrl) thumbnail_url = signed.signedurl;
           } catch (e) {
             console.warn("[api/models] createSignedUrl error", e);
           }

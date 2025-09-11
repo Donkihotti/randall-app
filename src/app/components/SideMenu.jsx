@@ -10,7 +10,7 @@ import LogoutButton from './buttons/LogOutButton'
 const firstGroupLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
   { name: 'Projects', path: '/', icon: '/Folders.svg', alt: 'folders-icon'  },
-  { name: 'Models', path: '/model/63ff9406-c948-49ca-8f13-dc4f411fe7db', icon: '/Users_Group.svg', alt: 'models icon' },
+  { name: 'Models', path: '/models', icon: '/Users_Group.svg', alt: 'models icon' },
   { name: 'Assets', path: '/', icon: '/Drag_Horizontal.svg', alt: 'models icon' },
   { name: 'Templates', path: '/', icon: '/Layers.svg', alt: 'Templates icon' },
 ]
@@ -127,6 +127,7 @@ export default function SideMenu() {
           alt='unfold more icon'
           width={18}
           height={18}
+          className='mr-3.5'
           />
         </div>
       </button>

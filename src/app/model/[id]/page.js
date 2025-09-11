@@ -12,9 +12,9 @@ export default async function Page({ params }) {
   console.log("[page] resolvedId:", resolvedId);
 
   return (
-    <PageLayout className="min-h-screen bg-gray-50">
+    <PageLayout className="min-h-screen">
       <div className="max-w-5xl mx-auto py-8">
-        <h1 className="text-2xl font-semibold mb-4">Saved Collection</h1>
+        <h1 className="text-2xl font-semibold mb-4">Model</h1>
         {/* Pass a string id down to the client component */}
         <ModelViewer id={resolvedId} />
       </div>
