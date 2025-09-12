@@ -9,6 +9,7 @@ import PageLayout from "../components/PageLayout/PageLayout"
 import DropDownButton from "../components/buttons/DropDownButton";
 import StartModalProject from "../components/StartModalProject";
 import UserCredits from "../components/user/UserCredits";
+import ProjectsList from "../components/projects/ProjectsList";
 
 export default function Dashboard () { 
     const [showStartModal, setShowStartModal] = useState(false);
@@ -69,9 +70,11 @@ export default function Dashboard () {
             </section>
             <section className="box-bg-normal h-96  flex flex-col p-3.5 w-2/6">
                 <span className="mb-5">Recent Projects</span>
+                <ProjectsList />
                 <div className="min-w-96 h-1/3 bg-normal-dark p-3.5 flex flex-row gap-x-3.5 rounded-xs">
                     <div className="w-48 h-full bg-normal rounded-xs"></div>
                     <p>Project name</p>
+
                 </div>
             </section>
             </div>

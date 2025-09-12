@@ -68,15 +68,9 @@ function extractAccessTokenFromCookies(cookies) {
 
 export async function GET(request) {
   try {
-    console.log("[api/models] GET url:", request.url);
-
     const cookieHeader = request.headers.get("cookie") || "";
-    console.log("[api/models] raw Cookie header present:", !!cookieHeader);
     const cookies = parseCookies(cookieHeader);
-    console.log("[api/models] cookie keys:", Object.keys(cookies));
-
     const accessToken = extractAccessTokenFromCookies(cookies);
-    console.log("[api/models] extracted access token present:", !!accessToken, accessToken ? `len=${accessToken.length}` : 0);
 
     if (!accessToken) {
       return NextResponse.json({ ok: false, error: "Unauthorized: missing cookie" }, { status: 401 });
@@ -84,7 +78,6 @@ export async function GET(request) {
 
     // validate token
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(accessToken);
-    console.log("[api/models] supabaseAdmin.auth.getUser result:", { userErr: userErr ? userErr.message : null, userId: userData?.user?.id });
     if (userErr || !userData?.user?.id) {
       return NextResponse.json({ ok: false, error: "Unauthorized: invalid token" }, { status: 401 });
     }
@@ -146,10 +139,8 @@ export async function GET(request) {
       });
     }
 
-    console.log("[api/models] returning count:", results.length);
     return NextResponse.json({ ok: true, models: results });
   } catch (err) {
-    console.error("[api/models] unexpected error", err);
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }

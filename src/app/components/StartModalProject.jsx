@@ -8,27 +8,50 @@ import Image from "next/image";
 import Modal from "./Modal";
 import ButtonOrange from "./buttons/ButtonOrange";
 
-export default function StartModalProject ({ open, onClose }) {
-  const [name, setName] = useState("");
-  const router = useRouter();
-
-  function handleCreate(e) {
-    e?.preventDefault?.();
-    if (!name?.trim()) {
-      // basic inline feedback: you may prefer showNotification
-      alert("Please add a project name before continuing.");
-      return;
-    }
-    // Navigate to create-model page with name prefilled via query param.
-    // The create-model page should read searchParams and prefill fields.
-    const urlName = encodeURIComponent(name.trim());
-    onClose?.(); 
-    router.push(`/createModel?name=${urlName}`);
-  }
+export default function StartModalProject ({ open, onClose, initialName = "", initialDescription = "" }) {
+    const [name, setName] = useState(initialName);
+    const [description, setDescription] = useState(initialDescription);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const router = useRouter();
+  
+    async function handleSubmit(e) {
+      e.preventDefault();
+      setLoading(true);
+      setError(null);
+  
+      try {
+        if (!name.trim()) throw new Error("Name is required");
+  
+        const res = await fetch("/api/projects", {
+          method: "POST",
+          credentials: "include", // important: cookies (HttpOnly) must be sent
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: name.trim(), description: description.trim() || null }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(json?.error || `Failed (${res.status})`);
+        }
+  
+        const project = json?.project;
+        if (!project?.id) throw new Error("Invalid server response");
+  
+        console.log("[CreateProjectForm] created project", project.id);
+        // Navigate to the project dashboard. Client navigation is fine here.
+        // If your dashboard server components need cookies immediately, consider window.location.href instead.
+        router.push(`/project/${project.id}/dashboard`);
+      } catch (err) {
+        console.error("[CreateProjectForm] create error", err);
+        setError(err.message || String(err));
+      } finally {
+        setLoading(false);
+      }
+    }  
 
   return (
     <Modal open={open} onClose={onClose} title="Start a new project">
-    <form className="w-xl mx-auto p-4 bg-normal rounded-md shadow relative border-[0.5px] border-light" onSubmit={handleCreate}>
+    <form className="w-xl mx-auto p-4 bg-normal rounded-md shadow relative border-[0.5px] border-light" onSubmit={handleSubmit}>
         <div className="absolute top-4 right-4">
             <button onClick={onClose} className="p-0.5 bg-normal hover:bg-normal-dark rounded-full hover:cursor-pointer">
                 <Image 
@@ -57,6 +80,8 @@ export default function StartModalProject ({ open, onClose }) {
         <textarea 
         className="textarea-default bg-normal-dark w-full h-28 rounded-xs text-small"
         placeholder="Describe your project "
+        value={description}
+        onChange={e => setDescription(e.target.value)}
         />
         <div className="flex flex-row justify-between w-full">
             <div className="flex flex-row gap-x-2 mt-5 h-full">
@@ -75,6 +100,7 @@ export default function StartModalProject ({ open, onClose }) {
             </ButtonOrange>
         </div>
       </div>
+      {error && <div className="text-red-600 text-sm">{error}</div>}
     </form>
     </Modal>
   );

@@ -24,6 +24,10 @@
   .box-bg-normal { 
     @apply rounded-md border-light bg-normal border 
   }
+  /*TEXT*/
+  .text-app-nav { 
+    @apply text-lg md:text-xl text-white font-medium hover:cursor-pointer
+  }
 }
 
 /* Autofill overrides for Chrome / WebKit */

@@ -6,6 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import PageLayout from "../components/PageLayout/PageLayout";
 
+const navLinks = [
+    { name: 'Dashboard', path: '/dashboard'},
+    { name: '/Models', path: '/models'},
+  ]
+
 export default function ModelsPage() {
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +68,11 @@ export default function ModelsPage() {
   return (
     <PageLayout>
       <div className="flex items-center justify-between">
-        <h1 className="text-medium">Models</h1>
+        <div className="flex flex-row">
+            {navLinks.map((nav, i ) => ( 
+            <Link href={nav.path} key={i} className="text-app-nav mb-4">{nav.name}</Link>
+            ))}
+        </div>
       </div>
 
       {loading && <div className="mt-4">Loading…</div>}
@@ -72,7 +81,7 @@ export default function ModelsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mt-6">
         {models.map((m) => (
           <Link key={m.id} href={`/model/${m.id}`} className="block">
-            <div className="box-bg-normal p-3 flex gap-3 hover:shadow-md transition">
+            <div className="box-bg-normal p-3 flex gap-3 hover:border-lighter transition">
               <div className="w-28 h-20 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
                 {m.thumbnail_url ? (
                   // Next/Image expects absolute URL allowed by next.config for external hosts,
