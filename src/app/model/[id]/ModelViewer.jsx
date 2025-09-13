@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import FetchLoader from "@/app/components/loaders/FetchLoader";
 
 /**
  * ModelViewer client component (patched for automatic refresh)
@@ -145,16 +146,16 @@ export default function ModelViewer({ id }) {
     await fetchModel(true);
   };
 
-  if (loading) return <div className="p-6 w-full h-full flex items-center justify-center">Loading assets…</div>;
+  if (loading) return <div className="absolute left-1/2 top-1/2"><FetchLoader /></div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
   if (!assets.length) return <div className="p-6">No assets in this collection.</div>;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full h-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full h-full">
       {assets.map((a) => (
         <div key={a.id} className="box-bg-normal overflow-hidden">
           {a.url ? (
-            <div className="w-full h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div className="w-full h-88 bg-gray-100 flex items-center justify-center overflow-hidden">
               <img
                 src={a.url}
                 alt={a.meta?.filename || a.id}
@@ -179,7 +180,7 @@ export default function ModelViewer({ id }) {
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs inline-block px-2 py-1 border rounded text-white hover:bg-gray-100"
+                  className="button-normal-h-light"
                   onClick={() => console.log("[ModelViewer] user clicked Open asset", a.id)}
                 >
                   Open
@@ -193,34 +194,7 @@ export default function ModelViewer({ id }) {
                 </button>
               )}
 
-              <button
-                className="text-xs px-2 py-1 border rounded text-white hover:bg-gray-100"
-                onClick={() => {
-                  console.log("[ModelViewer] debug: copy asset url to clipboard", a.id, a.url);
-                  if (a.url) navigator.clipboard?.writeText(a.url).then(() => {
-                    console.log("[ModelViewer] copied url for", a.id);
-                    alert("Asset URL copied to clipboard (debug)");
-                  }).catch((e) => {
-                    console.warn("[ModelViewer] failed to copy url", e);
-                  });
-                }}
-              >
-                Copy URL
-              </button>
-
-              <button
-                className="text-xs px-2 py-1 border rounded text-white hover:bg-gray-100"
-                onClick={() => {
-                  console.log("[ModelViewer] manual refresh requested");
-                  fetchModel(true);
-                }}
-              >
-                Refresh URLs
-              </button>
-            </div>
-
-            <div className="text-xs text-gray-400 mt-2">
-              {a.expires_at ? `Expires: ${new Date(a.expires_at * 1000).toLocaleString()}` : "No expiry info"}
+             
             </div>
           </div>
         </div>

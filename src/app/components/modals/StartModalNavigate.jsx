@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Modal from "./Modal";
-import ButtonOrange from "./buttons/ButtonOrange";
+import ButtonOrange from "../buttons/ButtonOrange";
 
 export default function StartModalNavigate({ open, onClose }) {
   const [name, setName] = useState("");
@@ -28,7 +28,7 @@ export default function StartModalNavigate({ open, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Start a new model">
-    <form className="w-xl mx-auto p-4 bg-normal rounded-md shadow relative border-[0.5px] border-light" onSubmit={handleCreate}>
+    <form className="w-xl mx-auto p-4 bg-normal rounded-md drop-shadow-xl relative border-[0.5px] border-light" onSubmit={handleCreate}>
         <div className="absolute top-4 right-4">
             <button onClick={onClose} className="p-0.5 bg-normal hover:bg-normal-dark rounded-full hover:cursor-pointer">
                 <Image 

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import FetchLoader from "../loaders/FetchLoader";
 
 export default function ProjectsList() {
   const [loading, setLoading] = useState(true);
@@ -31,22 +33,31 @@ export default function ProjectsList() {
     return () => { mounted = false; };
   }, []);
 
-  if (loading) return <div className="p-4">Loading projects…</div>;
+  if (loading) return <div className="w-full h-full relative"><FetchLoader/></div>;
   if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
   if (!projects.length) return <div className="p-4">No projects yet — create one!</div>;
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-3 h-full">
       {projects.map(p => (
-        <div key={p.id} className="bg-white p-4 rounded shadow-sm flex justify-between items-center">
-          <div>
-            <div className="text-lg font-medium">{p.name}</div>
-            <div className="text-xs text-gray-500">{p.description}</div>
-            <div className="text-xs text-gray-400 mt-1">Created: {new Date(p.created_at).toLocaleString()}</div>
+        <div key={p.id} className="box-bg-normal p-1.5 flex items-center flex-row relative gap-x-2">
+        <div className="absolute top-3 right-3 border-light hover:border hover:border-light px-3 py-1">
+          
+        </div>
+        <div className="w-2/5 h-24 bg-light rounded-xs"></div>
+          <div className="flex h-24 flex-col">
+            <div className="text-small font-semibold">{p.name}</div>
+           
           </div>
           <div>
-            <button onClick={() => router.push(`/project/${p.id}/dashboard`)} className="px-3 py-1 border rounded">
-              Open
+            <button onClick={() => router.push(`/project/${p.id}/dashboard`)} className="button-normal-h-light pl-1.5 flex items-center gap-x-1 justify-center font-semibold absolute bottom-1.5 right-1.5">
+              <Image 
+                src={'More_Grid_Small.svg'}
+                alt="edit icon"
+                height={20}
+                width={20}
+                />
+                Open
             </button>
           </div>
         </div>

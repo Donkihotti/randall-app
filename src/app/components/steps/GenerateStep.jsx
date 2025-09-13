@@ -187,7 +187,7 @@ export default function GenerateStep({ subjectId: propSubjectId, name: propName 
 
       <h2 className="text-lg font-semibold mb-3">Generate face reference for {name || "Unnamed model"}</h2>
 
-      <form onSubmit={handleGenerate} className="space-y-4">
+      <form onSubmit={handleGenerate} className="space-y-2">
         <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
           className="textarea-default w-full p-2 bg-normal rounded-md  border border-light" placeholder="Photorealistic female model, neutral expression..." />
 

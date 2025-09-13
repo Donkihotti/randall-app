@@ -1,10 +1,12 @@
 // src/app/models/page.client.jsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import PageLayout from "../components/PageLayout/PageLayout";
+import FetchLoader from "../components/loaders/FetchLoader";
+import StartModalNavigate from "../components/modals/StartModalNavigate";
 
 const navLinks = [
     { name: 'Dashboard', path: '/dashboard'},
@@ -15,6 +17,24 @@ export default function ModelsPage() {
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showStartModal, setShowStartModal] = useState(false); 
+  const [open, setOpen] = useState('false'); 
+  const dropDownRef = useRef(null); 
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (dropDownRef.current && !dropDownRef.current.contains(e.target)) setOpen(false);
+    }
+    function onEsc(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -74,14 +94,25 @@ export default function ModelsPage() {
             ))}
         </div>
       </div>
+      <div>
+        <button onClick={() => setShowStartModal(true)} className="button-normal-orange">Create Model</button>
+      </div>
 
-      {loading && <div className="mt-4">Loading…</div>}
+      {loading && <div className="w-full h-4/5 flex items-center justify-center"><FetchLoader /></div>}
       {error && <div className="mt-4 text-red-600">Error: {error}</div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mt-6">
         {models.map((m) => (
           <Link key={m.id} href={`/model/${m.id}`} className="block">
-            <div className="box-bg-normal p-3 flex gap-3 hover:border-lighter transition">
+            <div className="box-bg-normal p-3 flex gap-3 hover:border-lighter transition relative">
+            <button className="absolute top-2 right-2 px-2 border border-normal hover:border-light rounded-xs hover:cursor-pointer">
+                <Image 
+                src={'More_Horizontal.svg'}
+                alt="more icon"
+                height={15}
+                width={20}
+                />
+            </button>
               <div className="w-28 h-20 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
                 {m.thumbnail_url ? (
                   // Next/Image expects absolute URL allowed by next.config for external hosts,
@@ -100,13 +131,12 @@ export default function ModelsPage() {
 
               <div className="flex-1">
                 <div className="font-semibold text-small text-white">{m.name || "Untitled"}</div>
-                <div className="text-sm text-gray-500 mt-1">Assets: {Array.isArray(m.asset_ids) ? m.asset_ids.length : "?"}</div>
-                <div className="text-xs text-gray-400 mt-2">{new Date(m.created_at).toLocaleString()}</div>
               </div>
             </div>
           </Link>
         ))}
       </div>
+    <StartModalNavigate open={showStartModal} onClose={() => setShowStartModal(false)} />
     </PageLayout>
   );
 }

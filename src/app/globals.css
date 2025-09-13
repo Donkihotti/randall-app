@@ -18,15 +18,29 @@
   .box-link-filled-white {
     @apply px-5 py-1 text-small bg-white rounded-xs text-black w-fit;
   }
-  .box-outside { 
-    @apply rounded
-  }
+  /*======BOXES USED IN UI===========*/
   .box-bg-normal { 
     @apply rounded-md border-light bg-normal border 
   }
-  /*TEXT*/
+  .box-bg-normal-plus { 
+    @apply rounded-md border-light bg-normal-plus border 
+  }
+  .box-bg-dark { 
+    @apply rounded-md border-light bg-normal-dark border 
+  }
+  /*======TEXT========*/
   .text-app-nav { 
     @apply text-lg md:text-xl text-white font-medium hover:cursor-pointer
+  }
+  /*======BUTTONS======*/
+  .button-normal { 
+    @apply px-3 py-1 border rounded-xs text-small border-light hover:bg-normal hover:cursor-pointer w-fit font-semibold h-fit
+  }
+  .button-normal-h-light { 
+    @apply px-3 py-1 border rounded-xs text-small border-light hover:bg-light hover:cursor-pointer w-fit font-semibold h-fit
+  }
+  .button-normal-orange{ 
+    @apply px-3 py-1 rounded-xs text-small bg-default-orange hover:bg-orange-focus hover:cursor-pointer w-fit font-semibold h-fit
   }
 }
 
@@ -54,13 +68,16 @@
   --color-button: var(--offgray);
   --color-menu: var(--menu);
   --color-canvas: var(--canvas);
+
   --color-normal: var(--normal);
+  --color-normal-plus: var(--normal-plus);
   --color-normal-dark: var(--dark-gray); 
   --color-light: var(--light-gray);
+  --color-lighter: var(--light-gray-plus);
+
   --color-side-menu: var(--menu-gray);
   --color-default-orange: var(--default-orange);
   --color-orange-focus: var(--default-orange-hover);
-  --color-lighter: var(--light-gray-plus);
 
   --text-header: var(--header);
   --text-header-2: var(--header-2);
@@ -80,12 +97,14 @@
     --menu: #000001;
     --canvas: #100F10;
     --normal: #383838;
+    --normal-plus: #2B2B2B; 
     --dark-gray: #242424;
     --light-gray: #484848; 
     --light-gray-plus: #828282;
     --menu-gray: #2F2F2F; 
     --default-orange: #FD5E32;
     --default-orange-hover: #ff8665;
+
 
     --sidemenu-text: 14px; 
     --header: 64px;

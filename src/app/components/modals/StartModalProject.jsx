@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import Modal from "./Modal";
-import ButtonOrange from "./buttons/ButtonOrange";
+import ButtonOrange from "../buttons/ButtonOrange";
 
 export default function StartModalProject ({ open, onClose, initialName = "", initialDescription = "" }) {
     const [name, setName] = useState(initialName);
@@ -51,7 +51,7 @@ export default function StartModalProject ({ open, onClose, initialName = "", in
 
   return (
     <Modal open={open} onClose={onClose} title="Start a new project">
-    <form className="w-xl mx-auto p-4 bg-normal rounded-md shadow relative border-[0.5px] border-light" onSubmit={handleSubmit}>
+    <form className="w-xl mx-auto p-4 bg-normal rounded-md drop-shadow-xl relative border-[0.5px] border-light" onSubmit={handleSubmit}>
         <div className="absolute top-4 right-4">
             <button onClick={onClose} className="p-0.5 bg-normal hover:bg-normal-dark rounded-full hover:cursor-pointer">
                 <Image 
@@ -67,7 +67,7 @@ export default function StartModalProject ({ open, onClose, initialName = "", in
         for multiple different usecases. For example it can be used to create pictures of a new product collection. </h4>
       <div className="mt-8">
         <label className="block text-sm font-medium mb-2 text-lighter">Project name</label>
-        <div className="flex flex-row gap-x-3 items-center bg-normal-dark pr-1 rounded-xs">
+        <div className="flex flex-row gap-x-3 items-center bg-normal-dark pr-1 rounded-xs border border-light">
         <input 
         className="input-default px-2 py-2 m-1 w-full bg-normal-dark rounded-xs h-full text-small" 
         maxLength={60}

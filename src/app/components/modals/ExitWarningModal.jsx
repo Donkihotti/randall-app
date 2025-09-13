@@ -1,6 +1,6 @@
 import ButtonOrange from "../buttons/ButtonOrange";
 import DefaultButton from "../buttons/DefaultButton";
-import Modal from "../Modal";
+import Modal from "./Modal";
 
 export default function ExitWarningModal ({open, onclose}) { 
     return(

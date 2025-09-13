@@ -1,19 +1,24 @@
 'use client';
 
 import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
-import StartModalNavigate from "../components/StartModalNavigate";
+import StartModalNavigate from "../components/modals/StartModalNavigate";
 import CreateBox from "./components/CreateBox"
 import FolderBox from "./components/FolderBox"
 import PageLayout from "../components/PageLayout/PageLayout"
 import DropDownButton from "../components/buttons/DropDownButton";
-import StartModalProject from "../components/StartModalProject";
+import StartModalProject from "../components/modals/StartModalProject";
+import StartModalPhotoshoot from "../components/modals/StartModalPhotoshoot";
 import UserCredits from "../components/user/UserCredits";
 import ProjectsList from "../components/projects/ProjectsList";
 
 export default function Dashboard () { 
     const [showStartModal, setShowStartModal] = useState(false);
-    const [showProjectModal, setProjectModal] = useState(false); 
+    const [showProjectModal, setShowProjectModal] = useState(false); 
+    const [showPhotoshootModal, setShowPhotoshootModal] = useState(false); 
+
     return (
         <PageLayout>
             <section className="w-full min-h-screen flex flex-col">
@@ -24,34 +29,33 @@ export default function Dashboard () {
                 <DropDownButton text="Create" />
             </div>
 
-            <div className="w-full flex flex-row gap-x-3.5">
-            <section className="w-4/6 border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
-                <div className="w-full h-8 bg-light absolute top-0 left-0 rounded-t-md flex items-center px-6">
-                
-                </div>
+            <div className="w-full grid grid-cols-12 gap-x-3.5 items-start">
+            {/* LEFT: main content (8/12) */}
+            <section className="col-span-8 border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
+                <div className="w-full h-8 bg-light absolute top-0 left-0 rounded-t-md flex items-center px-6" />
 
-                {/* First Row */}
-                <section className="w-full flex flex-col md:flex-row gap-8 mt-12">
-                <div className="flex-1 flex flex-col gap-2">
+                {/* First Row - keep two equal columns with grid */}
+                <section className="w-full grid grid-cols-2 gap-8 mt-12">
+                <div className="flex flex-col gap-2">
                     <p className="font-semibold">Projects</p>
                     <div className="flex flex-wrap gap-4">
-                    <CreateBox text="new project" onClick={() => setProjectModal(true)} />
+                    <CreateBox text="new project" onClick={() => setShowProjectModal(true)} />
                     <FolderBox text="All projects" href="/" />
                     </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-2">
-                    <p className="font-semibold">Templates</p>
+                <div className="flex flex-col gap-2">
+                    <p className="font-semibold">Photoshoots</p>
                     <div className="flex flex-wrap gap-4">
-                    <CreateBox text="new template" href="/" />
-                    <FolderBox text="All templates" href="/" />
+                    <CreateBox text="new photoshoot" onClick={() => setShowPhotoshootModal(true)} />
+                    <FolderBox text="Photoshoots" href="/photoshoots" />
                     </div>
                 </div>
                 </section>
 
-                {/* Second Row */}
-                <section className="w-full flex flex-col md:flex-row gap-8 mt-8">
-                <div className="flex-1 flex flex-col gap-2">
+                {/* Second Row - same grid so widths stay identical to first row */}
+                <section className="w-full grid grid-cols-2 gap-8 mt-8">
+                <div className="flex flex-col gap-2">
                     <p className="font-semibold">Models</p>
                     <div className="flex flex-wrap gap-4">
                     <CreateBox text="new model" onClick={() => setShowStartModal(true)} />
@@ -59,7 +63,7 @@ export default function Dashboard () {
                     </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-2">
+                <div className="flex flex-col gap-2">
                     <p className="font-semibold">Assets</p>
                     <div className="flex flex-wrap gap-4">
                     <CreateBox text="new asset" href="/" />
@@ -68,19 +72,21 @@ export default function Dashboard () {
                 </div>
                 </section>
             </section>
-            <section className="box-bg-normal h-96  flex flex-col p-3.5 w-2/6">
-                <span className="mb-5">Recent Projects</span>
-                <ProjectsList />
-                <div className="min-w-96 h-1/3 bg-normal-dark p-3.5 flex flex-row gap-x-3.5 rounded-xs">
-                    <div className="w-48 h-full bg-normal rounded-xs"></div>
-                    <p>Project name</p>
 
-                </div>
+            {/* RIGHT: sidebar (4/12) */}
+            <section className="col-span-4 box-bg-normal-plus h-full flex flex-col p-3.5 relative">
+                <span className="mb-5 text-small font-semibold">Recent Projects</span>
+                <Link href={'/'} className="button-normal absolute flex flex-row gap-x-2 top-3.5 right-3.5">
+                <Image src={'/List_Unordered.svg'} alt="list icon" width={18} height={18} />
+                View all
+                </Link>
+                <ProjectsList />
             </section>
             </div>
             </section>
             <StartModalNavigate open={showStartModal} onClose={() => setShowStartModal(false)} />
-            <StartModalProject open={showProjectModal} onClose={() => setProjectModal(false)} />
+            <StartModalProject open={showProjectModal} onClose={() => setShowProjectModal(false)} />
+            <StartModalPhotoshoot open={showPhotoshootModal} onClose={() => setShowPhotoshootModal(false)} />
         </PageLayout>
     )
 }
