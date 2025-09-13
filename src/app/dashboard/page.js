@@ -40,7 +40,7 @@ export default function Dashboard () {
                     <p className="font-semibold">Projects</p>
                     <div className="flex flex-wrap gap-4">
                     <CreateBox text="new project" onClick={() => setShowProjectModal(true)} />
-                    <FolderBox text="All projects" href="/" />
+                    <FolderBox text="All projects" href="/projects" />
                     </div>
                 </div>
 
