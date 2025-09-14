@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function SignInForm({ redirectTo = '/private' }) {
   const router = useRouter()
@@ -43,34 +44,34 @@ export default function SignInForm({ redirectTo = '/private' }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ margin: '1.5rem auto' }} className='text-black w-2/3'>
-      <h2>Sign in</h2>
+    <form onSubmit={handleSubmit} style={{ margin: '1.5rem auto' }} className='text-white w-2/3'>
 
       {error && <div style={{ color: 'var(--danger, #b00020)', marginBottom: 12 }}>{error}</div>}
 
-      <label style={{ display: 'block', marginBottom: 8 }}>
+      <label className='block mt-8 text-small font-semibold'>
         Email
+      </label>
         <input 
         name="email" 
         type="email" 
         required 
         placeholder='Email'
-        className='input-default bg-[#EAEAEA] py-1 px-3.5 w-full rounded-xs'/>
-      </label>
+        className='input-default bg-normal-dark py-2 px-3.5 w-full mt-1 rounded-xs'/>
 
-      <label style={{ display: 'block', marginBottom: 8 }}>
+      <label className='font-semibold text-small block mt-7'>
         Password
+      </label>
         <input 
         name="password" 
         type="password" 
         required 
         placeholder='Password'
-        className='input-default bg-[#EAEAEA] py-1 px-3.5 w-full rounded-xs'
+        className='input-default bg-normal-dark py-2 px-3.5 w-full rounded-xs mt-1'
         />
-      </label>
+        <Link href={'/'} className='text-small text-lighter mt-2 hover:underline'>Forgot your password?</Link>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button className='bg-default-orange text-white px-3.5 py-1 w-full rounded-xs font-semibold hover:cursor-pointer' type="submit" disabled={loading}>
+      <div className='mt-8'>
+        <button className='button-normal-orange w-full py-2' type="submit" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </div>

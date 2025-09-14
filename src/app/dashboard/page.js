@@ -29,9 +29,9 @@ export default function Dashboard () {
                 <DropDownButton text="Create" />
             </div>
 
-            <div className="w-full grid grid-cols-12 gap-x-3.5 items-start">
+            <div className="w-full grid grid-cols-12 grid-rows-6 gap-x-3.5 gap-y-3.5 items-start">
             {/* LEFT: main content (8/12) */}
-            <section className="col-span-8 border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
+            <section className="col-span-8 row-span-4 border border-light p-4 md:p-6 flex flex-col items-center rounded-md relative text-small">
                 <div className="w-full h-8 bg-light absolute top-0 left-0 rounded-t-md flex items-center px-6" />
 
                 {/* First Row - keep two equal columns with grid */}
@@ -74,13 +74,23 @@ export default function Dashboard () {
             </section>
 
             {/* RIGHT: sidebar (4/12) */}
-            <section className="col-span-4 box-bg-normal-plus h-full flex flex-col p-3.5 relative">
+            <section className="col-span-4 row-span-4 box-bg-normal-plus h-full flex flex-col p-3.5 relative">
                 <span className="mb-5 text-small font-semibold">Recent Projects</span>
                 <Link href={'/projects'} className="button-normal absolute flex flex-row gap-x-2 top-3.5 right-3.5">
                 <Image src={'/List_Unordered.svg'} alt="list icon" width={18} height={18} />
                 View all
                 </Link>
                 <ProjectsList />
+            </section>
+            <section className="box-bg-normal-plus col-span-8 col-start-1 row-span-2 h-full p-3.5 relative">
+                <p className="text-small font-semibold">Recent photoshoots</p>
+                <Link href={'/photoshoots'} className="button-normal absolute flex flex-row gap-x-2 top-3.5 right-3.5">
+                <Image src={'/List_Unordered.svg'} alt="list icon" width={18} height={18} />
+                View all
+                </Link>
+            </section>
+            <section className="box-bg-normal-plus col-span-4 col-start-9 row-span-2 h-full p-3.5">
+                <p className="text-small font-semibold">Learn more</p>
             </section>
             </div>
             </section>
