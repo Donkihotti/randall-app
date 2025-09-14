@@ -35,7 +35,14 @@ export default function ProjectsList() {
 
   if (loading) return <div className="w-full h-full relative"><FetchLoader/></div>;
   if (error) return <div className="p-4 text-red-600">Error: {error}</div>;
-  if (!projects.length) return <div className="p-4">No projects yet — create one!</div>;
+  if (!projects.length) return ( 
+  <div className="border border-light w-full h-full rounded-xs border-dashed text-small font-semibold flex flex-col items-center justify-center">
+    <div className="flex flex-col items-start gap-y-2">
+    <p>No projects yet, start by creating one!</p>
+    <button className="button-normal">Create new project</button>
+    </div>
+  </div> 
+  );
 
   return (
     <div className="space-y-3 h-full">

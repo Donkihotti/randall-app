@@ -76,7 +76,7 @@ export default function Dashboard () {
             {/* RIGHT: sidebar (4/12) */}
             <section className="col-span-4 box-bg-normal-plus h-full flex flex-col p-3.5 relative">
                 <span className="mb-5 text-small font-semibold">Recent Projects</span>
-                <Link href={'/'} className="button-normal absolute flex flex-row gap-x-2 top-3.5 right-3.5">
+                <Link href={'/projects'} className="button-normal absolute flex flex-row gap-x-2 top-3.5 right-3.5">
                 <Image src={'/List_Unordered.svg'} alt="list icon" width={18} height={18} />
                 View all
                 </Link>

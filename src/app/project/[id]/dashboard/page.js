@@ -18,7 +18,7 @@ export default function Page () {
             <ProjectButtonRow />
             <section className="w-full h-3/5 flex flex-row mt-16">
                 <div className="box-bg-normal flex flex-row w-3/5 h-full p-3.5 relative">
-                    <p className="text-small font-semibold">Photoshoots</p>
+                    <p className="text-small font-semibold">Photoshoots in this project</p>
                     <button className="button-normal-h-light absolute top-3.5 right-3.5">View all</button>
                 </div>
                 <div className="flex flex-col w-2/5 h-full"></div>

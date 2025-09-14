@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import FetchLoader from "@/app/components/loaders/FetchLoader";
 
 /**
  * PhotoshootViewer
@@ -205,10 +206,14 @@ export default function PhotoshootViewer({ id }) {
     }
   }
 
-  if (loading) return <div className="p-6">Loading photoshoot…</div>;
+  if (loading) return <div className=""><FetchLoader/></div>;
   if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
   if (!photoshoot) return <div className="p-6">No photoshoot data.</div>;
-  if (!assets.length) return <div className="p-6">No assets yet for this photoshoot.</div>;
+  if (!assets.length) return (
+    <div className="w-full h-96 border rounded-xs border-normal border-dashed flex items-center justify-center">
+        <p className="text-small font-semibold">No images created for this photoshoot.</p>
+    </div>
+  );
 
   return (
     <div className="space-y-4 p-4">

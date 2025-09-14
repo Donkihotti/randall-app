@@ -226,7 +226,7 @@ export default function SideMenu() {
       </div>
     
     <div className='w-full px-3.5'>
-      <Link href={'/settings'} className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
+      <button onClick={() => setShowSettingsModal(true)} className='flex flex-row gap-x-2 hover:bg-light rounded-xs px-2 py-1 w-full transition-colors duration-100 hover:cursor-pointer mt-8 text-small font-semibold'>
         <Image
         src={"/Settings.svg"}
         alt='settings-icon'
@@ -234,7 +234,7 @@ export default function SideMenu() {
         height={17}
         />
         <p>Settings</p>
-      </Link>
+      </button>
       </div>
 
       <div className="flex flex-col mx-3.5 bg-normal-dark mt-12 rounded-md hover:cursor-pointer border border-light absolute bottom-6">

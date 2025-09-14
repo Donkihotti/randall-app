@@ -4,9 +4,12 @@ import ProjectsList from "../components/projects/ProjectsList";
 
 export default function Page() {
   return (
-    <PageLayout className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <ProjectsList />
+    <PageLayout className="min-h-screen">
+      <div className="max-w-full">
+        <p className="text-lg md:text-xl text-white font-medium">Projects</p>
+        <div className="mt-7">
+         <ProjectsList/>
+        </div>
       </div>
     </PageLayout>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import FetchLoader from "../loaders/FetchLoader";
 
 /**
  * PhotoshootsList (client)
@@ -72,9 +73,7 @@ export default function PhotoshootsList() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="text-sm text-gray-600">Loading your photoshoots…</div>
-      </div>
+    <FetchLoader/>
     );
   }
 
