@@ -6,29 +6,28 @@ import { useRouter } from "next/navigation";
 
 /**
  * PhotoshootEditorClient
- * - creates a job to make images
+ * - creates a job to make a single base image (shots = 1)
  * - after job created, polls the photoshoot GET endpoint and waits for at least one asset
  * - when the first asset arrives, shows a PreviewModal with that image and an editable prompt box
- * - Accept -> navigates to studio/editor (you can change the target)
+ * - Accept -> PATCH photoshoot to set base_asset_id (and optional prompt), then navigate to create-more
  */
 
-function PreviewModal({ open, onClose, imageUrl, initialPrompt, onAccept }) {
+function PreviewModal({ open, onClose, imageUrl, initialPrompt, onAccept, accepting }) {
   const [prompt, setPrompt] = useState(initialPrompt ?? "");
   useEffect(() => { setPrompt(initialPrompt ?? ""); }, [initialPrompt, open]);
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full box-bg-normal-plus max-w-2/3 shadow-lg overflow-hidden">
-        <div className="p-3 border-b flex justify-between items-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full box-bg-normal-plus max-w-2/3 shadow-lg overflow-hidden ">
+        <div className="p-3 flex justify-between items-center">
           <div className="font-semibold">Preview base image</div>
           <button onClick={onClose} className="px-2 py-1">Close</button>
         </div>
 
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="w-full h-72 bg-gray-100 flex items-center justify-center overflow-hidden">
+        <div className="p-3.5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="w-full h-96 bg-gray-100 flex items-center justify-center overflow-hidden">
             {imageUrl ? (
-              // plain img because signed URLs may be external
               <img src={imageUrl} alt="preview" className="w-full h-full object-contain" />
             ) : (
               <div className="text-gray-500">Image not available</div>
@@ -38,18 +37,19 @@ function PreviewModal({ open, onClose, imageUrl, initialPrompt, onAccept }) {
           <div className="flex flex-col gap-3">
             <label className="text-sm font-medium">Edit prompt (optional)</label>
             <textarea
-              className="w-full h-40 border rounded p-2"
+              className="textarea-default bg-normal-dark h-40 border rounded p-2"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
             />
-            <div className="flex gap-2 mt-auto">
+            <div className="flex gap-2 mt-auto w-full flex-row justify-end">
+            <button onClick={onClose} className="button-normal-h-light">Cancel</button>
               <button
                 onClick={() => onAccept({ prompt })}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
+                className="button-normal-orange"
+                disabled={accepting}
               >
-                Accept & Continue
+                {accepting ? "Accepting…" : "Accept & Continue"}
               </button>
-              <button onClick={onClose} className="px-3 py-2 border rounded">Cancel</button>
             </div>
           </div>
         </div>
@@ -68,7 +68,6 @@ export default function PhotoshootEditorClient({ photoshootId }) {
   const [style, setStyle] = useState("product");
   const [selectedModelId, setSelectedModelId] = useState("");
   const [previewAssetId, setPreviewAssetId] = useState(null);
-  const [shots, setShots] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -76,14 +75,12 @@ export default function PhotoshootEditorClient({ photoshootId }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [previewPrompt, setPreviewPrompt] = useState("");
-  
-  
+  const [accepting, setAccepting] = useState(false);
+
+  // model preview url
+  const [modelPreviewUrl, setModelPreviewUrl] = useState(null);
 
   const pollRef = useRef(null);
-
-  // clamp shots range
-  const MIN_SHOTS = 1;
-  const MAX_SHOTS = 10;
 
   useEffect(() => {
     let mounted = true;
@@ -106,7 +103,39 @@ export default function PhotoshootEditorClient({ photoshootId }) {
     return () => { mounted = false; };
   }, []);
 
-  // helper: poll photoshoot until assets arrive
+  // produce a model preview url whenever selectedModelId or models change
+  useEffect(() => {
+    if (!selectedModelId) {
+      setModelPreviewUrl(null);
+      return;
+    }
+    const m = (models || []).find((x) => String(x.id) === String(selectedModelId));
+    if (!m) {
+      setModelPreviewUrl(null);
+      return;
+    }
+
+    // try several common fields for an image/thumbnail
+    const candidate =
+      m.preview_url ||
+      m.thumbnail_url ||
+      m.thumbnail ||
+      (m.meta && (m.meta.thumbnail || m.meta.preview)) ||
+      m.url ||
+      m.image ||
+      // nested assets (e.g. { assets: [{url}] })
+      (Array.isArray(m.assets) && m.assets[0] && (m.assets[0].url || m.assets[0].thumbnail)) ||
+      null;
+
+    // normalize if nested asset object
+    let url = null;
+    if (candidate && typeof candidate === "string") url = candidate;
+    else if (candidate && typeof candidate === "object") url = candidate.url || candidate.thumbnail || null;
+
+    setModelPreviewUrl(url);
+  }, [selectedModelId, models]);
+
+  // helper: poll photoshoot until assets arrive (first asset)
   async function waitForFirstAsset(timeoutMs = 60_000, intervalMs = 2000) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -117,17 +146,14 @@ export default function PhotoshootEditorClient({ photoshootId }) {
           cache: "no-store",
         });
         if (!res.ok) {
-          // if server returns 401/403, abort
           if (res.status === 401 || res.status === 403) throw new Error("unauthorized");
         }
         const json = await res.json().catch(() => null);
         const assets = Array.isArray(json?.assets) ? json.assets : [];
-        if (assets.length > 0) {
-          // return first asset
-          return assets[0];
-        }
+        if (assets.length > 0) return assets[0];
       } catch (err) {
         console.warn("[PhotoshootEditor] waitForFirstAsset fetch error", err);
+        if (err && (err.message === "unauthorized" || err.message === "Unauthorized")) throw err;
       }
       await new Promise((r) => setTimeout(r, intervalMs));
     }
@@ -146,19 +172,15 @@ export default function PhotoshootEditorClient({ photoshootId }) {
       setError("Prompt is required");
       return;
     }
-    if (shots < MIN_SHOTS || shots > MAX_SHOTS) {
-      setError(`Shots must be between ${MIN_SHOTS} and ${MAX_SHOTS}`);
-      return;
-    }
 
     setLoading(true);
     try {
+      // Base image always uses 1 shot
       const body = {
         prompt: prompt.trim(),
         style,
-        shots: Number(shots),
+        shots: 1,
         reference_collection_id: selectedModelId || null,
-        // send job type "base" so worker could treat differently if desired
         type: "base",
       };
 
@@ -178,11 +200,9 @@ export default function PhotoshootEditorClient({ photoshootId }) {
         throw new Error(json?.error || `Create failed (${res.status})`);
       }
 
-      // job created. Now wait for the worker to produce the base image.
-      // show a small "waiting" UI while polling. We'll poll up to 60s.
+      // job created -> wait for the worker to produce the single base image
       const asset = await waitForFirstAsset(60_000, 2000);
       if (!asset) {
-        // no asset within timeout -> fall back: navigate to dashboard so user can see jobs
         console.warn("[PhotoshootEditor] no asset found within timeout, redirecting to dashboard");
         router.push(`/photoshoot/${photoshootId}/dashboard`);
         return;
@@ -192,7 +212,7 @@ export default function PhotoshootEditorClient({ photoshootId }) {
       setPreviewImage(asset.url ?? asset.url_fallback ?? null);
       setPreviewPrompt(prompt.trim());
       setPreviewOpen(true);
-      setPreviewAssetId(asset.id); 
+      setPreviewAssetId(asset.id);
     } catch (err) {
       console.error("[PhotoshootEditor] create error", err);
       setError(err.message || String(err));
@@ -201,19 +221,69 @@ export default function PhotoshootEditorClient({ photoshootId }) {
     }
   }
 
-  function onAcceptPreview(editedPrompt) {
-    // NOTE: editedPrompt is the prompt the user typed in preview modal (if you capture it)
-    const params = new URLSearchParams();
-    if (previewAssetId) params.set("baseAssetId", previewAssetId);
-    if (editedPrompt) params.set("prompt", editedPrompt);
-    if (style) params.set("style", style);
-    // close modal then navigate
-    setPreviewOpen(false);
-    router.push(`/photoshoot/${encodeURIComponent(photoshootId)}/studio/create-more?${params.toString()}`);
+  // Accept handler: PATCH photoshoot to set base_asset_id (and optionally prompt), then navigate to create-more
+  async function onAcceptPreview({ prompt: editedPrompt } = {}) {
+    if (!photoshootId) {
+      console.error("[PhotoshootEditor] onAcceptPreview missing photoshootId");
+      return;
+    }
+
+    setAccepting(true);
+    try {
+      const payload = {};
+      if (previewAssetId) payload.base_asset_id = previewAssetId;
+      if (typeof editedPrompt === "string" && editedPrompt.trim().length > 0) payload.prompt = editedPrompt.trim();
+
+      // PATCH /api/photoshoots/{id}
+      const patchRes = await fetch(`/api/photoshoots/${encodeURIComponent(photoshootId)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const patchJson = await patchRes.json().catch(() => null);
+      console.log("[PhotoshootEditor] PATCH photoshoot response:", patchRes.status, patchJson);
+
+      if (!patchRes.ok) {
+        const msg = patchJson?.error || `Failed to set base image (${patchRes.status})`;
+        throw new Error(msg);
+      }
+
+      // close modal and navigate to create-more studio
+      setPreviewOpen(false);
+
+      const params = new URLSearchParams();
+      if (previewAssetId) params.set("baseAssetId", previewAssetId);
+      if (editedPrompt) params.set("prompt", editedPrompt);
+      if (style) params.set("style", style);
+
+      router.push(`/photoshoot/${encodeURIComponent(photoshootId)}/studio/create-more?${params.toString()}`);
+    } catch (err) {
+      console.error("[PhotoshootEditor] onAcceptPreview error", err);
+      setError(err.message || String(err));
+    } finally {
+      setAccepting(false);
+    }
   }
 
   return (
     <div className="w-full box-bg-normal p-3.5">
+      {/* Model preview area */}
+      {selectedModelId && modelPreviewUrl && (
+        <div className="mb-4 p-3 border rounded flex items-center gap-4 bg-white">
+          <div className="w-20 h-20 bg-gray-100 overflow-hidden rounded">
+            <img src={modelPreviewUrl} alt="model preview" className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-semibold">Selected model</div>
+            <div className="text-xs text-gray-500 mt-1">{(models.find(m => String(m.id) === String(selectedModelId))?.name) || selectedModelId}</div>
+          </div>
+          <div>
+            <button onClick={() => setSelectedModelId("")} className="px-2 py-1 border rounded text-sm">Deselect</button>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleCreate} className="space-y-4">
         <div>
           <label className="block text-small font-semibold mb-1 ">Prompt</label>
@@ -231,7 +301,7 @@ export default function PhotoshootEditorClient({ photoshootId }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-small font-semibold mb-1">Style preset</label>
-            <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full border rounded px-2 py-1">
+            <select value={style} onChange={(e) => setStyle(e.target.value)} className="w-full border-lighter border rounded-md px-2 py-1">
               <option value="product">Product</option>
               <option value="creative">Creative</option>
               <option value="editorial">Editorial</option>
@@ -240,17 +310,10 @@ export default function PhotoshootEditorClient({ photoshootId }) {
             <div className="text-xs text-lighter mt-1">Style persists across shots in the job.</div>
           </div>
 
+          {/* Shots input removed — base image always generates a single image */}
           <div>
-            <label className="block text-sm font-medium mb-1">Shots</label>
-            <input
-              type="number"
-              min={MIN_SHOTS}
-              max={MAX_SHOTS}
-              value={shots}
-              onChange={(e) => setShots(Math.max(MIN_SHOTS, Math.min(MAX_SHOTS, Number(e.target.value || 1))))}
-              className="w-32 border rounded px-2 py-1"
-            />
-            <div className="text-xs text-lighter mt-1">How many images to create (max {MAX_SHOTS}).</div>
+            <label className="block text-sm font-medium mb-1">&nbsp;</label>
+            <div className="text-xs text-lighter mt-2">A single base image will be generated. You can create more after accepting the base image.</div>
           </div>
         </div>
 
@@ -264,7 +327,7 @@ export default function PhotoshootEditorClient({ photoshootId }) {
             <select
               value={selectedModelId}
               onChange={(e) => setSelectedModelId(e.target.value)}
-              className="w-full border rounded px-2 py-1"
+              className="w-full border-lighter border rounded-xs px-2 py-1"
             >
               <option value="">No model</option>
               {models.map((m) => (
@@ -302,6 +365,7 @@ export default function PhotoshootEditorClient({ photoshootId }) {
         onClose={() => setPreviewOpen(false)}
         imageUrl={previewImage}
         initialPrompt={previewPrompt}
+        accepting={accepting}
         onAccept={({ prompt }) => onAcceptPreview({ prompt })}
       />
     </div>

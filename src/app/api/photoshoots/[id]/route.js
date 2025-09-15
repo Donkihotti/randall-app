@@ -201,6 +201,8 @@ export async function GET(request, { params }) {
       }
     }
 
+    
+
     // create signed urls server-side (short expiry) and return expires_in/expires_at
     const signedExpirySec = 60 * 60; // 1 hour
     const signedAssets = await Promise.all((assetsRows || []).map(async (a) => {
@@ -246,3 +248,65 @@ export async function GET(request, { params }) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
   }
 }
+
+export async function PATCH(request, { params }) {
+    try {
+      const resolvedParams = await params;
+      const photoshootId = resolvedParams?.id;
+      if (!photoshootId) return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
+  
+      const userId = await getUserIdFromRequest(request, supabaseAdmin);
+      if (!userId) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  
+      const body = await request.json().catch(() => ({}));
+      // only allow specific fields to be updated from client
+      const allowed = {};
+      if (body.base_asset_id) allowed.base_asset_id = body.base_asset_id;
+      if (body.thumbnail_asset_id) allowed.thumbnail_asset_id = body.thumbnail_asset_id;
+      if (typeof body.visibility === "string") allowed.visibility = body.visibility;
+      if (typeof body.description === "string") allowed.description = body.description;
+      if (body.result_summary && typeof body.result_summary === "object") allowed.result_summary = body.result_summary;
+  
+      if (!Object.keys(allowed).length) {
+        return NextResponse.json({ ok: false, error: "No updatable fields" }, { status: 400 });
+      }
+  
+      // ensure photoshoot exists and owner matches
+      const { data: psRow, error: psErr } = await supabaseAdmin
+        .from("photoshoots")
+        .select("id, owner_id")
+        .eq("id", photoshootId)
+        .limit(1)
+        .maybeSingle();
+  
+      if (psErr) {
+        console.error("[api/photoshoots/[id]] photoshoot lookup error:", psErr);
+        return NextResponse.json({ ok: false, error: "Failed to fetch photoshoot" }, { status: 500 });
+      }
+      if (!psRow) return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+      if (String(psRow.owner_id) !== String(userId)) return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  
+      allowed.updated_at = new Date().toISOString();
+  
+      const { data: updated, error: updErr } = await supabaseAdmin
+        .from("photoshoots")
+        .update(allowed)
+        .eq("id", photoshootId)
+        .select()
+        .limit(1)
+        .maybeSingle();
+  
+      if (updErr) {
+        console.error("[api/photoshoots/[id]] update error:", updErr);
+        return NextResponse.json({ ok: false, error: "Failed to update photoshoot" }, { status: 500 });
+      }
+  
+      return NextResponse.json({ ok: true, photoshoot: updated }, { status: 200 });
+    } catch (err) {
+      console.error("[api/photoshoots/[id]] PATCH error", err);
+      const msg = err?.message || String(err);
+      if (msg === "no_access_token" || msg === "invalid_token" || msg === "invalid_user")
+        return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+    }
+  }

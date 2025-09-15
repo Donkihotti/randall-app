@@ -194,11 +194,11 @@ export default function CreateMoreClient({ photoshootId: photoshootIdProp = null
             </div>
 
             <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded" disabled={submitting}>
-                {submitting ? "Creating…" : "Create more images"}
-              </button>
-              <button type="button" onClick={() => router.push(`/photoshoot/${photoshootId}/dashboard`)} className="px-3 py-2 border rounded">
+              <button type="button" onClick={() => router.push(`/photoshoot/${photoshootId}/dashboard`)} className="button-normal-h-light">
                 Cancel
+              </button>
+              <button type="submit" className="button-normal-orange" disabled={submitting}>
+                {submitting ? "Creating…" : "Create more images"}
               </button>
             </div>
 

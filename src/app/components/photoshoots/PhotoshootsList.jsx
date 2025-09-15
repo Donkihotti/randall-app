@@ -118,7 +118,7 @@ export default function PhotoshootsList() {
                 // consider window.location.href to force full reload.
                 router.push(`/photoshoot/${p.id}/dashboard`);
               }}
-              className="px-3 py-1 border rounded bg-blue-600 text-white text-sm hover:bg-blue-700"
+              className="button-normal-h-light"
             >
               Open
             </button>

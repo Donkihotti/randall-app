@@ -9,10 +9,10 @@ import LogoutButton from './buttons/LogOutButton'
 
 const firstGroupLinks = [
   { name: 'Dashboard', path: '/dashboard', icon: '/House_01.svg', alt: 'House icon, home-icon' },
-  { name: 'Projects', path: '/', icon: '/Folders.svg', alt: 'folders-icon'  },
+  { name: 'Projects', path: '/projects', icon: '/Folders.svg', alt: 'folders-icon'  },
   { name: 'Models', path: '/models', icon: '/Users_Group.svg', alt: 'models icon' },
   { name: 'Assets', path: '/', icon: '/Drag_Horizontal.svg', alt: 'models icon' },
-  { name: 'Templates', path: '/', icon: '/Layers.svg', alt: 'Templates icon' },
+  { name: 'Photoshoots', path: '/photoshoots', icon: '/Layers.svg', alt: 'Photoshoots icon' },
 ]
 
 const secondGroupLinks = [

@@ -59,7 +59,7 @@ export default function SignUpForm({ redirectTo = '/SignInPage' }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 520, margin: '1.5rem auto' }} className='text-black'>
+    <form onSubmit={handleSubmit} style={{ maxWidth: 520, margin: '1.5rem auto' }} className='text-white'>
       <h2>Create an account</h2>
 
       {error && <div style={{ color: 'var(--danger, #b00020)', marginBottom: 12 }}>{error}</div>}
@@ -67,32 +67,27 @@ export default function SignUpForm({ redirectTo = '/SignInPage' }) {
 
       <label style={{ display: 'block', marginBottom: 8 }}>
         Email
-        <input name="email" type="email" required />
+        <input name="email" type="email" required className='input-default bg-normal-dark py-2 px-3.5 w-full mt-1 rounded-xs'/>
       </label>
 
       <label style={{ display: 'block', marginBottom: 8 }}>
         Password
-        <input name="password" type="password" minLength={6} required />
+        <input name="password" type="password" minLength={6} required className='input-default bg-normal-dark py-2 px-3.5 w-full mt-1 rounded-xs'/>
       </label>
 
       <label style={{ display: 'block', marginBottom: 8 }}>
         Username
-        <input name="username" type="text" required />
+        <input name="username" type="text" required className='input-default bg-normal-dark py-2 px-3.5 w-full mt-1 rounded-xs'/>
         <small>letters, numbers, underscore — 3-30 chars</small>
       </label>
 
       <label style={{ display: 'block', marginBottom: 8 }}>
         Display name
-        <input name="display_name" type="text" />
-      </label>
-
-      <label style={{ display: 'block', marginBottom: 8 }}>
-        Bio
-        <textarea name="bio" rows="3" />
+        <input name="display_name" type="text" className='input-default bg-normal-dark py-2 px-3.5 w-full mt-1 rounded-xs'/>
       </label>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className='button-normal-orange w-full py-2'>
           {loading ? 'Creating…' : 'Create account'}
         </button>
       </div>

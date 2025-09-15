@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono, Instrument_Sans, Instrument_Serif, Inter } from "next/font/google";
 import "./globals.css";
-import NavBar from "./components/NavBar";
+import { Toaster } from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +34,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${instrumental.variable} antialiased`}
       >
+        <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
         {children}
       </body>
     </html>

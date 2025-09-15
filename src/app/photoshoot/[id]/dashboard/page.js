@@ -11,10 +11,7 @@ export default async function Page({ params }) {
   return (
     <PageLayout className="min-h-screen">
       <div className="w-full mx-auto h-full py-8">
-        <h1 className="text-2xl font-semibold mb-4">Photoshoot</h1>
-        <div className="w-full">
-          {/* pass string id down to client */}
-          <PhotoshootViewer id={id} />
+        <div className="w-full h-full">
           <PhotoshootDashboardClient id={id} />
         </div>
       </div>

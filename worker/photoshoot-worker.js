@@ -272,12 +272,34 @@ export async function processOneJob() {
         const assetRow = await uploadAssetAndCreateRow(photoshoot.id, photoshoot.owner_id, fileObj);
         await createPhotoshootAssetRelation(photoshoot.id, assetRow, i, "result");
         console.log("[worker] uploaded and linked asset", assetRow.id);
-      } catch (err) {
-        console.error("[worker] failed to upload/link image", err);
-        await markJobFailed(job.id, err);
-        return true;
+        if (!photoshoot.base_asset_id && i === 0) {
+            try {
+              const { data: updated, error: updErr } = await supabaseAdmin
+                .from("photoshoots")
+                .update({ base_asset_id: assetRow.id, updated_at: new Date().toISOString() })
+                .eq("id", photoshoot.id)
+                .select()
+                .limit(1)
+                .maybeSingle();
+      
+              if (updErr) {
+                console.warn("[worker] failed to set base_asset_id", updErr);
+              } else {
+                // also update local photoshoot variable so subsequent logic sees it
+                photoshoot.base_asset_id = assetRow.id;
+                console.log("[worker] set photoshoot.base_asset_id =", assetRow.id);
+              }
+            } catch (e) {
+              console.warn("[worker] exception while setting base_asset_id", e);
+            }
+          }
+      
+        } catch (err) {
+          console.error("[worker] failed to upload/link image", err);
+          await markJobFailed(job.id, err);
+          return true;
+        }
       }
-    }
 
     await markJobStatus(job.id, { status: "succeeded", finished_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     await supabaseAdmin.from("photoshoots").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", photoshoot.id);
