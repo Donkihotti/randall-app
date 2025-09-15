@@ -68,7 +68,7 @@ export default function StartModalPhotoshoot({
   
         console.log("[StartModalPhotoshoot] created photoshoot", photoshoot.id);
         // navigate to photoshoot dashboard
-        router.push(`/photoshoot/${photoshoot.id}/dashboard`);
+        router.push(`/photoshoot/${photoshoot.id}/studio`);
       } catch (err) {
         console.error("[StartModalPhotoshoot] create error", err);
         setError(err.message || String(err));

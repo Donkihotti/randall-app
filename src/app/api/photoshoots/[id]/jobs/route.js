@@ -11,7 +11,7 @@ function parseCookies(cookieHeader = "") {
   if (!cookieHeader) return {};
   return cookieHeader
     .split(";")
-    .map(s => s.trim())
+    .map((s) => s.trim())
     .filter(Boolean)
     .reduce((acc, pair) => {
       const idx = pair.indexOf("=");
@@ -29,7 +29,7 @@ function extractAccessTokenFromCookies(cookies = {}) {
   if (cookies["sb-access-token"]) return cookies["sb-access-token"];
   if (cookies["sb-debug-access"]) return cookies["sb-debug-access"];
   // supabase cookie name ending in -auth-token
-  const authKey = Object.keys(cookies).find(k => k && k.toLowerCase().endsWith("-auth-token"));
+  const authKey = Object.keys(cookies).find((k) => k && k.toLowerCase().endsWith("-auth-token"));
   if (authKey) {
     const raw = cookies[authKey];
     if (!raw) return null;
@@ -54,18 +54,20 @@ function extractAccessTokenFromCookies(cookies = {}) {
     }
   }
   // fallback: any long cookie-like value
-  const candidate = Object.keys(cookies).find(k => cookies[k] && cookies[k].length > 100);
+  const candidate = Object.keys(cookies).find((k) => cookies[k] && cookies[k].length > 100);
   if (candidate) return cookies[candidate];
   return null;
 }
 
 async function getUserIdFromRequest(request) {
   const cookieHeader = request.headers.get("cookie") || "";
-  console.log("[jobs/route] raw cookie header (truncated):", cookieHeader ? cookieHeader.slice(0,300) + (cookieHeader.length>300?"…": "") : "(none)");
+  console.log(
+    "[jobs/route] raw cookie header (truncated):",
+    cookieHeader ? cookieHeader.slice(0, 300) + (cookieHeader.length > 300 ? "…" : "") : "(none)"
+  );
   const cookies = parseCookies(cookieHeader);
   console.log("[jobs/route] cookie keys:", Object.keys(cookies));
   const accessToken =
-    // prefer Authorization header if present
     (request.headers.get("authorization") || "").toLowerCase().startsWith("bearer ")
       ? (request.headers.get("authorization") || "").slice(7).trim()
       : extractAccessTokenFromCookies(cookies);
@@ -100,8 +102,20 @@ export async function POST(request, { params }) {
     console.log("[api/photoshoots/:id/jobs] authenticated userId:", userId);
 
     const body = await request.json().catch(() => ({}));
-    const shots = Number(body.shots || 1);
-    const paramsObj = body.parameters && typeof body.parameters === "object" ? body.parameters : null;
+
+    // Accept the fields the client may send
+    const shotsRaw = Number(body.shots ?? 1);
+    const MIN_SHOTS = 1;
+    const MAX_SHOTS = 50;
+    const shots = Number.isFinite(shotsRaw) ? Math.max(MIN_SHOTS, Math.min(MAX_SHOTS, Math.floor(shotsRaw))) : 1;
+
+    const prompt = body.prompt ? String(body.prompt) : null;
+    const style = body.style ? String(body.style) : null;
+    const type = body.type ? String(body.type) : null; // e.g. "base" | "variation" | null
+    const reference_asset_id = body.reference_asset_id ? String(body.reference_asset_id) : null;
+    const reference_collection_id = body.reference_collection_id ? String(body.reference_collection_id) : null;
+    const parameters = body.parameters && typeof body.parameters === "object" ? body.parameters : null;
+    const priority = Number.isFinite(Number(body.priority)) ? Number(body.priority) : 100;
 
     // verify photoshoot exists and ownership
     const { data: photoshoot, error: psErr } = await supabaseAdmin
@@ -121,14 +135,21 @@ export async function POST(request, { params }) {
       return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
     }
 
-    // insert job row
+    // build job row
     const jobRow = {
       photoshoot_id: photoshootId,
       owner_id: userId,
       status: "queued",
       shots,
-      parameters: paramsObj,
+      prompt,
+      style,
+      type,
+      reference_asset_id,
+      reference_collection_id,
+      parameters,
+      priority,
       created_at: new Date().toISOString(),
+      // started_at / finished_at left null until worker updates
     };
 
     const { data: jobCreated, error: jobErr } = await supabaseAdmin
@@ -144,6 +165,14 @@ export async function POST(request, { params }) {
     }
 
     console.log("[api/photoshoots/:id/jobs] job queued:", jobCreated?.id);
+
+    // best-effort: mark photoshoot status queued (so UI can show) — ignore errors
+    try {
+      await supabaseAdmin.from("photoshoots").update({ status: "queued", updated_at: new Date().toISOString() }).eq("id", photoshootId);
+    } catch (uErr) {
+      console.warn("[api/photoshoots/:id/jobs] warning: failed to update photoshoot.status", uErr);
+    }
+
     return NextResponse.json({ ok: true, job: jobCreated }, { status: 201 });
   } catch (err) {
     console.error("[api/photoshoots/:id/jobs] unexpected error:", err);

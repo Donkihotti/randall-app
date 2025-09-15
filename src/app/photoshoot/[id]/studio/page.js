@@ -2,14 +2,15 @@
 import PageLayout from "@/app/components/PageLayout/PageLayout";
 import PhotoshootEditorClient from "@/app/components/photoshoots/PhotoshootEditorClient";
 
-export default function PhotoshootStudioPage({ params }) {
-  const id = params?.id;
+export default async function Page({ params }) {
+    const { id } = await params;
   return (
     <PageLayout>
-        <div className="w-full h-full ">
+        <div className="w-full h-full relative">
         <h1 className="text-2xl font-semibold mb-4">Photoshoot Studio</h1>
-        <p className="text-sm text-gray-600 mb-6">Create new images for this photoshoot / tweak generation settings.</p>
+        <div className="absolute bottom-3.5 w-full">
         <PhotoshootEditorClient photoshootId={id} />
+        </div>
         </div>
     </PageLayout>
   );

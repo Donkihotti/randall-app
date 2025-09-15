@@ -1,8 +1,7 @@
-// src/app/photoshoot/[id]/PhotoshootDashboardClient.jsx
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import ModelViewer from "@/app/model/[id]/ModelViewer";
+// import ModelViewer from "@/app/model/[id]/ModelViewer"; // you can keep if used elsewhere
 
 export default function PhotoshootDashboardClient({ id }) {
   const [loading, setLoading] = useState(true);
@@ -113,9 +112,17 @@ export default function PhotoshootDashboardClient({ id }) {
         </div>
 
         <div className="flex gap-2">
+          {photoshoot.base_asset_id && (
+            <button onClick={() => window.location.href = `/photoshoot/${id}/create`} className="px-3 py-1 border rounded bg-indigo-600 text-white">
+                Create more
+            </button>
+            )}
+
+          {/* Keep enqueue button for quick runs */}
           <button onClick={enqueueJob} className="px-3 py-1 border rounded bg-blue-600 text-white">
             Run Photoshoot
           </button>
+
           <button onClick={() => fetchData({ force: true })} className="px-3 py-1 border rounded">
             Refresh
           </button>
@@ -148,8 +155,6 @@ export default function PhotoshootDashboardClient({ id }) {
         {assets.length === 0 ? (
           <div className="text-sm text-gray-500">No images yet — run a photoshoot</div>
         ) : (
-          // ModelViewer expects id prop but the component you showed earlier is ModelViewer expecting an id of collection.
-          // We'll directly render the grid here (you can instead pass assets to a generic viewer)
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {assets.map(a => (
               <div key={a.id} className="bg-white rounded-lg overflow-hidden border">

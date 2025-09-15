@@ -82,6 +82,8 @@ export default function Dashboard () {
                 </Link>
                 <ProjectsList />
             </section>
+
+            {/* bottom parts */}
             <section className="box-bg-normal-plus col-span-8 col-start-1 row-span-2 h-full p-3.5 relative">
                 <p className="text-small font-semibold">Recent photoshoots</p>
                 <Link href={'/photoshoots'} className="button-normal absolute flex flex-row gap-x-2 top-3.5 right-3.5">
@@ -92,6 +94,7 @@ export default function Dashboard () {
             <section className="box-bg-normal-plus col-span-4 col-start-9 row-span-2 h-full p-3.5">
                 <p className="text-small font-semibold">Learn more</p>
             </section>
+
             </div>
             </section>
             <StartModalNavigate open={showStartModal} onClose={() => setShowStartModal(false)} />

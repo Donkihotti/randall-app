@@ -98,9 +98,9 @@ export default function PhotoshootsList() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 w-full">
       {photoshoots.map((p) => (
-        <div key={p.id} className="bg-white p-4 rounded-lg shadow-sm border flex justify-between items-start gap-4">
+        <div key={p.id} className="box-bg-normal p-4 rounded-lg shadow-sm border flex justify-between items-start gap-4">
           <div className="flex-1">
             <div className="flex items-baseline gap-3">
               <div className="text-lg font-medium">{p.name || "Untitled photoshoot"}</div>
