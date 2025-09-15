@@ -232,7 +232,202 @@ async function saveExtractedItemToStorage(item, subjectId, idx) {
         client.release();
       }
     }
+
+    async function createThumbnailFromBuffer(buffer, subjectId, filenameBase = 'thumb', ownerId = null) {
+      try {
+        console.log(`[worker] createThumbnailFromBuffer: subject=${subjectId} filenameBase=${filenameBase} ownerId=${ownerId}`);
+        // If ownerId not provided, try to look it up from subjects table
+        let owner_id_val = ownerId;
+        if (!owner_id_val) {
+          try {
+            const { data: subjRow, error: subjErr } = await supabaseAdmin.from('subjects').select('owner_id').eq('id', subjectId).limit(1).single();
+            if (subjErr) {
+              console.warn('[worker] createThumbnailFromBuffer: could not read subject owner', subjErr);
+            } else {
+              owner_id_val = subjRow?.owner_id || null;
+            }
+          } catch (e) {
+            console.warn('[worker] createThumbnailFromBuffer: subject lookup failed', e);
+          }
+        }
     
+        if (!owner_id_val) {
+          console.warn('[worker] createThumbnailFromBuffer: subject has no owner_id; skipping DB insert to avoid NOT NULL constraint. SubjectId=', subjectId);
+          return null;
+        }
+    
+        const thumbBuf = await sharp(buffer)
+          .resize(400, 400, { fit: 'cover' })
+          .jpeg({ quality: 78 })
+          .toBuffer();
+    
+        const thumbName = `${Date.now()}-${uuidv4().slice(0,8)}-${(filenameBase||'thumb').replace(/\s+/g,'-').toLowerCase()}.jpg`;
+        const objectPath = `${subjectId}/thumbnails/${thumbName}`;
+    
+        const upResult = await uploadBufferToStorage(thumbBuf, objectPath, GENERATED_BUCKET);
+        console.log('[worker] createThumbnailFromBuffer: upload result', { objectPath: upResult.object_path || upResult.objectPath, urlPresent: !!upResult.url });
+    
+        const thumbAsset = {
+          subject_id: subjectId,
+          owner_id: owner_id_val, // NON-NULL guaranteed above
+          type: 'thumbnail',
+          bucket: GENERATED_BUCKET,
+          object_path: upResult.object_path || upResult.objectPath || objectPath,
+          filename: thumbName,
+          url: upResult.url || null,
+          meta: { derived_from: filenameBase, kind: 'thumbnail' },
+          parent_id: null,
+          version: 1,
+          active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+    
+        const { data: inserted, error: insErr } = await supabaseAdmin.from('assets').insert(thumbAsset).select().limit(1).maybeSingle();
+        if (insErr) {
+          console.warn('[worker] createThumbnailFromBuffer: DB insert error', insErr);
+          // cleanup uploaded object to avoid orphan
+          try { await supabaseAdmin.storage.from(GENERATED_BUCKET).remove([objectPath]); } catch (e) {}
+          throw insErr;
+        }
+    
+        console.log('[worker] createThumbnailFromBuffer: inserted thumb asset id=', inserted?.id);
+        return inserted;
+      } catch (e) {
+        console.warn('[worker] createThumbnailFromBuffer failed', e && (e.message || e));
+        return null;
+      }
+    }    
+    
+    async function createThumbnailForAssetRow(assetRow, subjectId, ownerId = null) {
+      if (!assetRow) {
+        console.warn('[worker] createThumbnailForAssetRow: missing assetRow');
+        return null;
+      }
+      let buf = null;
+    
+      try {
+        console.log('[worker] createThumbnailForAssetRow: fetching source for', assetRow.id);
+        if (assetRow.object_path) {
+          buf = await downloadStorageToBuffer(assetRow.object_path, assetRow.bucket || GENERATED_BUCKET);
+        } else if (assetRow.url) {
+          const r = await fetch(assetRow.url);
+          if (!r.ok) throw new Error('fetch of asset url failed: ' + r.status);
+          const arr = new Uint8Array(await r.arrayBuffer());
+          buf = Buffer.from(arr);
+        }
+      } catch (e) {
+        console.warn('[worker] createThumbnailForAssetRow: failed to fetch source buffer, skipping thumb', e && (e.message || e));
+        return null;
+      }
+    
+      if (!buf) {
+        console.warn('[worker] createThumbnailForAssetRow: no buffer obtained');
+        return null;
+      }
+    
+      const filenameBase = assetRow.filename || (assetRow.object_path ? assetRow.object_path.split('/').pop() : 'asset');
+    
+      // pass ownerId through to the creator
+      const thumb = await createThumbnailFromBuffer(buf, subjectId, filenameBase, ownerId);
+    
+      if (thumb) {
+        try {
+          const { data, error } = await supabaseAdmin.from('assets').update({ parent_id: assetRow.id, updated_at: new Date().toISOString() }).eq('id', thumb.id).select().limit(1).maybeSingle();
+          if (error) console.warn('[worker] createThumbnailForAssetRow: failed to set parent_id on thumb asset', error);
+          else console.log('[worker] createThumbnailForAssetRow: set parent_id, thumb.id=', thumb.id, 'parent=', assetRow.id);
+        } catch (e) {
+          console.warn('[worker] createThumbnailForAssetRow: update parent_id exception', e);
+        }
+      } else {
+        console.warn('[worker] createThumbnailForAssetRow: createThumbnailFromBuffer returned null');
+      }
+    
+      return thumb;
+    }
+    
+    async function attachThumbnailToSubject(subjectId, thumbnailAssetId) {
+      if (!subjectId || !thumbnailAssetId) {
+        console.warn('[worker] attachThumbnailToSubject: missing args', { subjectId, thumbnailAssetId });
+        return false;
+      }
+      try {
+        const { data, error } = await supabaseAdmin.from('subjects').update({
+          thumbnail_asset_id: thumbnailAssetId,
+          updated_at: new Date().toISOString()
+        }).eq('id', subjectId).select().limit(1).maybeSingle();
+    
+        if (error) {
+          console.warn('[worker] attachThumbnailToSubject update error', error);
+          return false;
+        }
+        if (!data) {
+          console.warn('[worker] attachThumbnailToSubject: update returned no data');
+          return false;
+        }
+        console.log('[worker] attachThumbnailToSubject: updated subject', subjectId, 'thumbnail=', thumbnailAssetId);
+        return true;
+      } catch (e) {
+        console.warn('[worker] attachThumbnailToSubject exception', e);
+        return false;
+      }
+    }
+    
+    async function attachThumbnailToSavedCollectionIfPresent(subjectRow, thumbnailAssetId) {
+      if (!subjectRow || !thumbnailAssetId) return false;
+      // 1) try explicit pointer fields the old way
+      const collectionId = subjectRow.saved_collection_id || subjectRow.collection_id || null;
+      if (collectionId) {
+        try {
+          const { error } = await supabaseAdmin.from('saved_collections').update({
+            thumbnail_asset_id: thumbnailAssetId,
+            updated_at: new Date().toISOString()
+          }).eq('id', collectionId);
+          if (error) {
+            console.warn('[worker] attachThumbnailToSavedCollectionIfPresent update error', error);
+            return false;
+          }
+          return true;
+        } catch (e) {
+          console.warn('[worker] attachThumbnailToSavedCollectionIfPresent exception', e);
+          return false;
+        }
+      }
+    
+      // 2) fallback: find saved_collections that reference this subject (subject_id)
+      if (subjectRow.id) {
+        try {
+          const { data: cols, error: colsErr } = await supabaseAdmin
+            .from('saved_collections')
+            .select('id')
+            .eq('subject_id', subjectRow.id);
+          if (colsErr) {
+            console.warn('[worker] fallback query failed', colsErr);
+            return false;
+          }
+          if (!cols || cols.length === 0) {
+            // nothing to do
+            return false;
+          }
+          // update all matching collections (usually one)
+          const ids = cols.map(c => c.id);
+          const { error: updErr } = await supabaseAdmin
+            .from('saved_collections')
+            .update({ thumbnail_asset_id: thumbnailAssetId, updated_at: new Date().toISOString() })
+            .in('id', ids);
+          if (updErr) {
+            console.warn('[worker] attachThumbnail fallback update error', updErr);
+            return false;
+          }
+          return true;
+        } catch (e) {
+          console.warn('[worker] attachThumbnailToSavedCollectionIfPresent exception (fallback)', e);
+          return false;
+        }
+      }
+    
+      return false;
+    }
 
 /* ---------- New: saveOutputsAsAssets helper ---------- */
 
@@ -739,6 +934,21 @@ async function processGenerateFaceJob(jobRow) {
     console.log(`[${WORKER_ID}] saved ${insertedAssets.length} asset rows for subject ${subjectId}`)
   } catch (e) {
     console.warn('Failed to persist outputs to assets table:', e)
+  }
+
+  if (insertedAssets && insertedAssets.length > 0) {
+    const baseAsset = insertedAssets[0];
+    console.log('[worker] generate-face: creating thumbnail for baseAsset', baseAsset.id, 'subjectOwner=', subj?.owner_id);
+    const thumb = await createThumbnailForAssetRow(baseAsset, subjectId, subj?.owner_id || null);
+    console.log('[worker] generate-face: thumbnail result', { thumbId: thumb?.id ?? null });
+    if (thumb && thumb.id) {
+      const subOk = await attachThumbnailToSubject(subjectId, thumb.id);
+      console.log('[worker] generate-face: attachThumbnailToSubject returned', subOk);
+      const colOk = await attachThumbnailToSavedCollectionIfPresent(subj, thumb.id);
+      console.log('[worker] generate-face: attachThumbnailToSavedCollectionIfPresent returned', colOk);
+    } else {
+      console.warn('[worker] generate-face: no thumb created for subject', subjectId);
+    }
   }
 
    // --- NEW: update subject.latest_asset_ids canonical pointer (best-effort)

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 export default function SignInForm({ redirectTo = '/private' }) {
   const router = useRouter()
@@ -33,6 +34,8 @@ export default function SignInForm({ redirectTo = '/private' }) {
         setLoading(false)
         return
       }
+
+      toast.success('Signed in succesfully!')
 
       // success: cookies are set server-side; navigate to the private area.
       router.push(redirectTo)

@@ -73,7 +73,7 @@
      }
  
      let aborted = false;
-     const maxAttempts = 27;
+     const maxAttempts = 50;
      const intervalMs = 1500;
  
      async function fetchSheetAssetsOnce() {

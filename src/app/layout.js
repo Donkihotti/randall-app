@@ -34,7 +34,19 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${instrumental.variable} antialiased`}
       >
-        <Toaster position="bottom-right" toastOptions={{ duration: 4000 }} />
+        <Toaster position="bottom-right" 
+        toastOptions={
+          { duration: 4000, 
+            style: { 
+              background: '#242424',
+              fontSize: '14px', 
+              color: '#fff',
+              border: '0.5px solid #545454',
+              borderRadius: '6px',
+              padding: '12px 16px',
+            }
+          }
+        } />
         {children}
       </body>
     </html>

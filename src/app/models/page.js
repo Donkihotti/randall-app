@@ -117,7 +117,7 @@ export default function ModelsPage() {
                 {m.thumbnail_url ? (
                   // Next/Image expects absolute URL allowed by next.config for external hosts,
                   // or use <img> if the signedURL is from a different origin. Using Image is fine if allowed.
-                  <Image
+                  <img
                     src={m.thumbnail_url}
                     alt={m.name || "thumbnail"}
                     width={160}
